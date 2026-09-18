@@ -750,7 +750,7 @@ async function uploadEvidence(id,inputId,msgId,btnId){
  if(!fs.length){msg.className="error evidence-msg";msg.textContent="اختر ملفًا واحدًا على الأقل.";return}
  btn.disabled=true;btn.textContent="جارٍ الرفع...";
  const totalBytes=fs.reduce((n,f)=>n+f.size,0);
- let uploadedBytes=0, uploaded=0, paths=[];
+ let uploadedBytes=0, uploaded=0, paths=[], savedToDb=false;
  const progressMap={};
  const updateOverall=()=>{
    const pct=totalBytes?Math.min(100,Math.round(uploadedBytes/totalBytes*100)):100;
@@ -775,6 +775,7 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    const rows=results.map(({f,path})=>({program_id:id,file_name:f.name,file_path:path,file_url:path,uploaded_by:me.id}));
    const ins=await sb.from("evidence").insert(rows);
    if(ins.error){await sb.storage.from("evidence").remove(paths);throw new Error("تم رفع الملفات لكن تعذر تسجيلها: "+ins.error.message)}
+   savedToDb=true;
    uploaded=results.length;
    const pr=await sb.from("programs").update({progress:100,status:"تم التنفيذ"}).eq("id",id);
    if(pr.error)throw new Error("تم حفظ الشواهد، لكن تعذر اعتماد البرنامج 100%: "+pr.error.message);
@@ -782,7 +783,7 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    renderDashboard();renderPrograms();renderReports();await renderEvidence();
    msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.";
    if(input)input.value="";
- }catch(e){if(paths.length){try{await sb.storage.from("evidence").remove(paths)}catch(cleanupError){console.error("Evidence cleanup error",cleanupError)}}msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e)}
+ }catch(e){if(paths.length && !savedToDb){try{await sb.storage.from("evidence").remove(paths)}catch(cleanupError){console.error("Evidence cleanup error",cleanupError)}}msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e)}
  finally{btn.disabled=false;btn.textContent="رفع الشواهد"}
 }
 async function loadUsers(){let r=await sb.from("profiles").select("*").order("created_at");users=r.data||[];userRows.innerHTML=users.map(u=>`<tr><td>${u.name||"-"}</td><td>${u.email}</td><td>${u.role==="coordinator"?"مشرف":"مدير المدرسة"}</td><td>${u.approved?"مقبول":"معلق"}</td><td><button onclick="toggleUser('${u.id}',${!u.approved})">${u.approved?"تعليق":"قبول"}</button></td></tr>`).join("")}
