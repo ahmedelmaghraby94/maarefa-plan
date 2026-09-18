@@ -780,9 +780,9 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    if(pr.error)throw new Error("تم حفظ الشواهد، لكن تعذر اعتماد البرنامج 100%: "+pr.error.message);
    await loadPrograms(Number(semesterSelect.value));
    renderDashboard();renderPrograms();renderReports();await renderEvidence();
-   msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.",
+   msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.";
    if(input)input.value="";
- }catch(e){msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e)}
+ }catch(e){if(paths.length){try{await sb.storage.from("evidence").remove(paths)}catch(cleanupError){console.error("Evidence cleanup error",cleanupError)}}msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e)}
  finally{btn.disabled=false;btn.textContent="رفع الشواهد"}
 }
 async function loadUsers(){let r=await sb.from("profiles").select("*").order("created_at");users=r.data||[];userRows.innerHTML=users.map(u=>`<tr><td>${u.name||"-"}</td><td>${u.email}</td><td>${u.role==="coordinator"?"مشرف":"مدير المدرسة"}</td><td>${u.approved?"مقبول":"معلق"}</td><td><button onclick="toggleUser('${u.id}',${!u.approved})">${u.approved?"تعليق":"قبول"}</button></td></tr>`).join("")}
