@@ -742,29 +742,46 @@ async function uploadEvidenceFile(path,file,onProgress){
   });
 }
 async function uploadEvidence(id,inputId,msgId,btnId){
- const fs=[...document.getElementById(inputId).files], msg=document.getElementById(msgId), btn=document.getElementById(btnId);
+ const input=document.getElementById(inputId);
+ const fs=[...((input&&input.files)||[])], msg=document.getElementById(msgId), btn=document.getElementById(btnId);
  msg.className="evidence-msg";msg.textContent="";
  if(!me || me.role!=="coordinator"){msg.className="error evidence-msg";msg.textContent="رفع الشواهد متاح لمنسق الخطة فقط.";return}
  if(!id){msg.className="error evidence-msg";msg.textContent="تعذر تحديد البرنامج.";return}
  if(!fs.length){msg.className="error evidence-msg";msg.textContent="اختر ملفًا واحدًا على الأقل.";return}
- btn.disabled=true;btn.textContent="جارٍ الرفع...";let uploaded=0;
+ btn.disabled=true;btn.textContent="جارٍ الرفع...";
+ const totalBytes=fs.reduce((n,f)=>n+f.size,0);
+ let uploadedBytes=0, uploaded=0, paths=[];
+ const progressMap={};
+ const updateOverall=()=>{
+   const pct=totalBytes?Math.min(100,Math.round(uploadedBytes/totalBytes*100)):100;
+   msg.textContent=fs.length>1?("جارٍ رفع "+fs.length+" ملفات — "+pct+"%"):"جارٍ الرفع — "+pct+"%";
+ };
  try{
-   for(const f of fs){
-     const ext=(f.name.match(/\.([A-Za-z0-9]{1,10})$/)||["","bin"])[1].toLowerCase();
-     const path=`${id}/${crypto.randomUUID()}.${ext}`;
-     msg.textContent=`جارٍ رفع: ${f.name}${f.size>6*1024*1024?' — رفع قابل للاستئناف':''}`;
-     await uploadEvidenceFile(path,f,pct=>{msg.textContent=`جارٍ رفع: ${f.name} — ${pct}%`;});
-     const ins=await sb.from("evidence").insert({program_id:id,file_name:f.name,file_path:path,file_url:path,uploaded_by:me.id});
-     if(ins.error){await sb.storage.from("evidence").remove([path]);throw new Error(`تم رفع الملف لكن تعذر تسجيله: ${ins.error.message}`)}
-     uploaded++;
-   }
-   if(uploaded){
-     const pr=await sb.from("programs").update({progress:100,status:"تم التنفيذ"}).eq("id",id);
-     if(pr.error)throw new Error(`تم حفظ الشاهد، لكن تعذر اعتماد البرنامج 100%: ${pr.error.message}`);
-     await loadPrograms(Number(semesterSelect.value));
-     renderDashboard();renderPrograms();renderReports();await renderEvidence();
-     msg.className="success evidence-msg";msg.textContent=`تم رفع ${uploaded} شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.`;
-   }
+   // رفع الملفات بالتوازي بدل انتظار انتهاء كل ملف قبل بدء التالي.
+   const results=await Promise.all(fs.map(async f=>{
+     const dot=f.name.lastIndexOf(".");
+     const ext=(dot>0?f.name.slice(dot+1):"bin").toLowerCase();
+     const path=id+"/"+crypto.randomUUID()+"."+ext;
+     paths.push(path);
+     await uploadEvidenceFile(path,f,pct=>{
+       progressMap[path]=Math.round(f.size*pct/100);
+       uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);
+       updateOverall();
+     });
+     progressMap[path]=f.size;uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);updateOverall();
+     return {f,path};
+   }));
+   // تسجيل جميع الشواهد في طلب واحد لتقليل زمن الشبكة.
+   const rows=results.map(({f,path})=>({program_id:id,file_name:f.name,file_path:path,file_url:path,uploaded_by:me.id}));
+   const ins=await sb.from("evidence").insert(rows);
+   if(ins.error){await sb.storage.from("evidence").remove(paths);throw new Error("تم رفع الملفات لكن تعذر تسجيلها: "+ins.error.message)}
+   uploaded=results.length;
+   const pr=await sb.from("programs").update({progress:100,status:"تم التنفيذ"}).eq("id",id);
+   if(pr.error)throw new Error("تم حفظ الشواهد، لكن تعذر اعتماد البرنامج 100%: "+pr.error.message);
+   await loadPrograms(Number(semesterSelect.value));
+   renderDashboard();renderPrograms();renderReports();await renderEvidence();
+   msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.",
+   if(input)input.value="";
  }catch(e){msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e)}
  finally{btn.disabled=false;btn.textContent="رفع الشواهد"}
 }
