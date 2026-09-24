@@ -754,16 +754,18 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    }};
    await Promise.all(Array.from({length:concurrency},()=>worker()));
    const rows=fs.map((f,i)=>({program_id:id,file_name:f.name,file_path:paths[i],file_url:paths[i],uploaded_by:me.id}));
+   // بمجرد اكتمال رفع الملفات نغيّر الرسالة فورًا حتى لا يبدو أن الرفع ما زال جاريًا أثناء تحديث الواجهة.
+   msg.textContent="تم رفع الملفات — جارٍ حفظ الشاهد...";
    const ins=await sb.from("evidence").insert(rows);
    if(ins.error){await sb.storage.from("evidence").remove(paths.filter(Boolean));throw new Error("تم رفع الملفات لكن تعذر تسجيلها: "+ins.error.message)}
    savedToDb=true;
    const pr=await sb.from("programs").update({progress:100,status:"تم التنفيذ"}).eq("id",id);
    if(pr.error)throw new Error("تم حفظ الشواهد، لكن تعذر اعتماد البرنامج 100%: "+pr.error.message);
    const local=programs.find(x=>Number(x.id)===Number(id));if(local){local.progress=100;local.status="تم التنفيذ";}
-   renderDashboard();renderPrograms();renderReports();
-   await renderEvidence();
    msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.";
    if(input)input.value="";
+   // تحديثات الواجهة الثانوية في الخلفية حتى لا تؤخر ظهور نجاح الرفع.
+   setTimeout(()=>{try{renderDashboard();renderPrograms();renderReports();renderEvidence()}catch(e){console.error("background refresh",e)}},0);
  }catch(e){
    if(paths.length&&!savedToDb){try{await sb.storage.from("evidence").remove(paths.filter(Boolean))}catch(cleanupError){console.error("Evidence cleanup error",cleanupError)}}
    msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e);
