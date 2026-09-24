@@ -707,15 +707,24 @@ async function deleteEvidence(evidenceId,path,programId){
  }
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
-async function uploadEvidenceFile(path,file,onProgress){
-  // الملفات لا تتجاوز 5MB عادةً، لذلك نستخدم الرفع المباشر مع أقل قدر ممكن من المعالجة.
-  const bucket=sb.storage.from("evidence");
-  const r=await bucket.upload(path,file,{
-    upsert:false,
-    contentType:file.type||"application/octet-stream",
-    cacheControl:"3600"
+async function uploadEvidenceFile(path,file,onProgress,accessToken){
+  // رفع مباشر إلى مضيف Storage لتقليل زمن الاتصال مع ملفات الشواهد الصغيرة.
+  const endpoint=window.SUPABASE_URL.replace(".supabase.co",".storage.supabase.co")+"/storage/v1/object/evidence/"+path.split("/").map(encodeURIComponent).join("/");
+  const res=await fetch(endpoint,{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+accessToken,
+      "Content-Type":file.type||"application/octet-stream",
+      "x-upsert":"false",
+      "cache-control":"3600"
+    },
+    body:file
   });
-  if(r.error)throw r.error;
+  if(!res.ok){
+    let msg="تعذر رفع الشاهد";
+    try{const e=await res.json();msg=e?.message||e?.error||msg}catch{}
+    throw new Error(msg);
+  }
   if(onProgress)onProgress(100);
 }
 async function uploadEvidence(id,inputId,msgId,btnId){
@@ -733,11 +742,14 @@ async function uploadEvidence(id,inputId,msgId,btnId){
  const updateOverall=()=>{const pct=totalBytes?Math.min(100,Math.round(uploadedBytes/totalBytes*100)):100;msg.textContent=fs.length>1?("جارٍ رفع "+fs.length+" ملفات — "+pct+"%"):"جارٍ الرفع — "+pct+"%";};
  const concurrency=Math.min(3,fs.length);
  try{
+   const sessionResult=await sb.auth.getSession();
+   const accessToken=sessionResult?.data?.session?.access_token;
+   if(!accessToken)throw new Error("انتهت جلسة الدخول، أعد تسجيل الدخول ثم حاول مرة أخرى.");
    const worker=async()=>{while(true){
      const index=next++;if(index>=fs.length)return;
      const f=fs[index],dot=f.name.lastIndexOf("."),ext=(dot>0?f.name.slice(dot+1):"bin").toLowerCase(),path=id+"/"+crypto.randomUUID()+"."+ext;
      paths[index]=path;
-     await uploadEvidenceFile(path,f,pct=>{progressMap[path]=Math.round(f.size*pct/100);uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);updateOverall()});
+     await uploadEvidenceFile(path,f,pct=>{progressMap[path]=Math.round(f.size*pct/100);uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);updateOverall()},accessToken);
      progressMap[path]=f.size;uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);uploaded++;updateOverall();
    }};
    await Promise.all(Array.from({length:concurrency},()=>worker()));
@@ -749,7 +761,6 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    if(pr.error)throw new Error("تم حفظ الشواهد، لكن تعذر اعتماد البرنامج 100%: "+pr.error.message);
    const local=programs.find(x=>Number(x.id)===Number(id));if(local){local.progress=100;local.status="تم التنفيذ";}
    renderDashboard();renderPrograms();renderReports();
-   // تحديث قائمة الشواهد نفسها فقط، دون إعادة تحميل البرامج من Supabase.
    await renderEvidence();
    msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.";
    if(input)input.value="";
