@@ -708,27 +708,15 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress){
+  // الملفات لا تتجاوز 5MB عادةً، لذلك نستخدم الرفع المباشر مع أقل قدر ممكن من المعالجة.
   const bucket=sb.storage.from("evidence");
-  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  // على أندرويد نستخدم الرفع المباشر لتجنب مشاكل TUS/جلسات الاستئناف في بعض المتصفحات.
-  if(isMobile || file.size<=50*1024*1024){
-    const uploadPromise=bucket.upload(path,file,{upsert:false,contentType:file.type||"application/octet-stream",cacheControl:"3600"});
-    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("انتهت مهلة الرفع. تحقق من اتصال الإنترنت وحاول مرة أخرى.")),isMobile?180000:120000));
-    const r=await Promise.race([uploadPromise,timeout]);
-    if(r.error)throw r.error;
-    if(onProgress)onProgress(100);
-    return;
-  }
-  if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع الآمن. حدّث الصفحة وحاول مرة أخرى.");
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session?.access_token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مرة أخرى.");
-  const projectRef="uifblcubxqddylsqyxda";
-  const endpoint="https://"+projectRef+".storage.supabase.co/storage/v1/upload/resumable";
-  await new Promise((resolve,reject)=>{
-    let settled=false;const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
-    const upload=new tus.Upload(file,{endpoint,retryDelays:[0,3000,5000,10000,20000],headers:{authorization:"Bearer "+session.access_token,"x-upsert":"false"},uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,metadata:{bucketName:"evidence",objectName:path,contentType:file.type||"application/octet-stream",cacheControl:"3600"},onError:e=>finish(reject,e),onProgress:(u,t)=>{if(onProgress)onProgress(Math.round(u/t*100))},onSuccess:()=>finish(resolve)});
-    upload.findPreviousUploads().then(prev=>{if(prev.length)upload.resumeFromPreviousUpload(prev[0]);upload.start()}).catch(e=>finish(reject,e));
+  const r=await bucket.upload(path,file,{
+    upsert:false,
+    contentType:file.type||"application/octet-stream",
+    cacheControl:"3600"
   });
+  if(r.error)throw r.error;
+  if(onProgress)onProgress(100);
 }
 async function uploadEvidence(id,inputId,msgId,btnId){
  const input=document.getElementById(inputId);
@@ -743,10 +731,7 @@ async function uploadEvidence(id,inputId,msgId,btnId){
  let uploadedBytes=0, uploaded=0, paths=[], savedToDb=false, next=0;
  const progressMap={};
  const updateOverall=()=>{const pct=totalBytes?Math.min(100,Math.round(uploadedBytes/totalBytes*100)):100;msg.textContent=fs.length>1?("جارٍ رفع "+fs.length+" ملفات — "+pct+"%"):"جارٍ الرفع — "+pct+"%";};
- const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
- const net=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
- const slowNet=/2g|3g/i.test(net?.effectiveType||"");
- const concurrency=mobile?(slowNet?1:2):Math.min(3,fs.length);
+ const concurrency=Math.min(3,fs.length);
  try{
    const worker=async()=>{while(true){
      const index=next++;if(index>=fs.length)return;
@@ -755,7 +740,7 @@ async function uploadEvidence(id,inputId,msgId,btnId){
      await uploadEvidenceFile(path,f,pct=>{progressMap[path]=Math.round(f.size*pct/100);uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);updateOverall()});
      progressMap[path]=f.size;uploadedBytes=Object.values(progressMap).reduce((a,b)=>a+b,0);uploaded++;updateOverall();
    }};
-   await Promise.all(Array.from({length:Math.min(concurrency,fs.length)},()=>worker()));
+   await Promise.all(Array.from({length:concurrency},()=>worker()));
    const rows=fs.map((f,i)=>({program_id:id,file_name:f.name,file_path:paths[i],file_url:paths[i],uploaded_by:me.id}));
    const ins=await sb.from("evidence").insert(rows);
    if(ins.error){await sb.storage.from("evidence").remove(paths.filter(Boolean));throw new Error("تم رفع الملفات لكن تعذر تسجيلها: "+ins.error.message)}
@@ -763,10 +748,11 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    const pr=await sb.from("programs").update({progress:100,status:"تم التنفيذ"}).eq("id",id);
    if(pr.error)throw new Error("تم حفظ الشواهد، لكن تعذر اعتماد البرنامج 100%: "+pr.error.message);
    const local=programs.find(x=>Number(x.id)===Number(id));if(local){local.progress=100;local.status="تم التنفيذ";}
-   renderDashboard();renderPrograms();renderReports();renderEvidence();
+   renderDashboard();renderPrograms();renderReports();
+   // تحديث قائمة الشواهد نفسها فقط، دون إعادة تحميل البرامج من Supabase.
+   await renderEvidence();
    msg.className="success evidence-msg";msg.textContent="تم رفع "+uploaded+" شاهد/شواهد بنجاح — تم اعتماد البرنامج 100%.";
    if(input)input.value="";
-   loadPrograms(Number(semesterSelect.value)).then(()=>{renderDashboard();renderPrograms();renderReports();renderEvidence()}).catch(e=>console.warn("Background refresh:",e));
  }catch(e){
    if(paths.length&&!savedToDb){try{await sb.storage.from("evidence").remove(paths.filter(Boolean))}catch(cleanupError){console.error("Evidence cleanup error",cleanupError)}}
    msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e);
