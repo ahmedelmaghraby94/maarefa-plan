@@ -708,55 +708,33 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
-  // للملفات الصغيرة نستخدم نفس نطاق Supabase الرئيسي الذي تعمل عليه بقية طلبات المنصة.
-  // هذا يتجنب مشاكل الشبكات التي قد تمنع مضيف Storage المباشر على بعض شبكات الجوال.
+  // رفع الملفات الصغيرة عبر Signed Upload URL من Supabase.
+  // هذا يفصل إنشاء تصريح الرفع عن إرسال الملف، ويجنب تعارض CORS/Authorization في بعض أجهزة Android.
   if(file.size<=6*1024*1024){
-    const objectPath=path.split("/").map(encodeURIComponent).join("/");
-    const endpoint=window.SUPABASE_URL+"/storage/v1/object/evidence/"+objectPath;
-    return await new Promise((resolve,reject)=>{
-      let attempt=0, settled=false;
-      const run=()=>{
-        attempt++;
-        const xhr=new XMLHttpRequest();
-        xhr.open("POST",endpoint,true);
-        xhr.setRequestHeader("apikey",window.SUPABASE_ANON_KEY);
-        xhr.setRequestHeader("authorization","Bearer "+accessToken);
-        xhr.setRequestHeader("cache-control","3600");
-        xhr.setRequestHeader("x-upsert","false");
-        xhr.setRequestHeader("content-type",file.type||"application/octet-stream");
-        xhr.timeout=30000;
-        xhr.upload.onprogress=e=>{
-          if(e.lengthComputable&&onProgress)onProgress(Math.round(e.loaded/e.total*100));
-        };
-        xhr.onload=()=>{
-          if(xhr.status>=200&&xhr.status<300){
-            if(onProgress)onProgress(100);
-            if(!settled){settled=true;resolve();}
-          }else if(attempt<2){
-            setTimeout(run,700);
-          }else if(!settled){
-            settled=true;
-            let detail="";
-            try{detail=JSON.parse(xhr.responseText||"").message||""}catch{}
-            reject(new Error(detail||"تعذر رفع الشاهد ("+xhr.status+")."));
-          }
-        };
-        xhr.onerror=()=>{
-          if(attempt<2)setTimeout(run,700);
-          else if(!settled){settled=true;reject(new Error("تعذر الاتصال بخدمة رفع الشواهد."));}
-        };
-        xhr.ontimeout=()=>{
-          if(attempt<2)setTimeout(run,700);
-          else if(!settled){settled=true;reject(new Error("انتهت مهلة رفع الشاهد بعد 30 ثانية. تحقق من الاتصال ثم حاول مرة أخرى."));}
-        };
-        xhr.onabort=()=>{if(!settled){settled=true;reject(new Error("تم إلغاء رفع الشاهد."));}};
-        xhr.send(file);
-      };
-      run();
+    if(onProgress)onProgress(0);
+    const createPromise=sb.storage.from("evidence").createSignedUploadUrl(path,{upsert:false});
+    const timed=await Promise.race([
+      createPromise,
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("تعذر تجهيز رابط رفع الشاهد خلال 15 ثانية.")),15000))
+    ]);
+    if(timed.error)throw timed.error;
+    const token=timed.data?.token;
+    if(!token)throw new Error("تعذر إنشاء رابط رفع الشاهد.");
+    if(onProgress)onProgress(5);
+    const uploadPromise=sb.storage.from("evidence").uploadToSignedUrl(path,token,file,{
+      contentType:file.type||"application/octet-stream",
+      cacheControl:"3600"
     });
+    const result=await Promise.race([
+      uploadPromise,
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("تعذر إكمال رفع الشاهد خلال 45 ثانية. تحقق من اتصال الجوال ثم حاول مرة أخرى.")),45000))
+    ]);
+    if(result.error)throw result.error;
+    if(onProgress)onProgress(100);
+    return;
   }
 
-  // الملفات الأكبر تستخدم TUS عبر Storage المباشر القابل للاستئناف.
+  // الملفات الأكبر تستخدم TUS القابل للاستئناف.
   if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع القابل للاستئناف. أعد تحميل الصفحة ثم حاول مرة أخرى.");
   const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
   const endpoint="https://"+projectId+".storage.supabase.co/storage/v1/upload/resumable";
