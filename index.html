@@ -710,21 +710,22 @@ async function openEvidence(path){const s=await sb.storage.from("evidence").crea
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
   const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
   const storageBase="https://"+projectId+".storage.supabase.co/storage/v1";
-  // الملفات الصغيرة تستخدم رفعًا مباشرًا واحدًا مع XHR لإظهار التقدم الحقيقي وتجنب انتظار TUS غير الضروري.
+  // الملفات الصغيرة: رفع مباشر مع XHR، مع إرسال مفتاح Supabase وJWT معًا كما تتطلب واجهة Storage.
   if(file.size<=6*1024*1024){
     const objectPath=path.split("/").map(encodeURIComponent).join("/");
     const endpoint=storageBase+"/object/evidence/"+objectPath;
     return await new Promise((resolve,reject)=>{
-      let attempt=0, xhr=null, settled=false;
+      let attempt=0, settled=false;
       const run=()=>{
         attempt++;
-        xhr=new XMLHttpRequest();
+        const xhr=new XMLHttpRequest();
         xhr.open("POST",endpoint,true);
+        xhr.setRequestHeader("apikey",window.SUPABASE_ANON_KEY);
         xhr.setRequestHeader("authorization","Bearer "+accessToken);
         xhr.setRequestHeader("cache-control","3600");
         xhr.setRequestHeader("x-upsert","false");
         xhr.setRequestHeader("content-type",file.type||"application/octet-stream");
-        xhr.timeout=90000;
+        xhr.timeout=30000;
         xhr.upload.onprogress=e=>{
           if(e.lengthComputable&&onProgress)onProgress(Math.round(e.loaded/e.total*100));
         };
@@ -733,7 +734,7 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
             if(onProgress)onProgress(100);
             if(!settled){settled=true;resolve();}
           }else if(attempt<2){
-            setTimeout(run,1000);
+            setTimeout(run,700);
           }else if(!settled){
             settled=true;
             let detail="";
@@ -742,12 +743,12 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
           }
         };
         xhr.onerror=()=>{
-          if(attempt<2)setTimeout(run,1000);
+          if(attempt<2)setTimeout(run,700);
           else if(!settled){settled=true;reject(new Error("تعذر الاتصال بخدمة رفع الشواهد."));}
         };
         xhr.ontimeout=()=>{
-          if(attempt<2)setTimeout(run,1000);
-          else if(!settled){settled=true;reject(new Error("انتهت مهلة رفع الشاهد. تحقق من الاتصال ثم حاول مرة أخرى."));}
+          if(attempt<2)setTimeout(run,700);
+          else if(!settled){settled=true;reject(new Error("انتهت مهلة رفع الشاهد بعد 30 ثانية. تحقق من الاتصال ثم حاول مرة أخرى."));}
         };
         xhr.onabort=()=>{if(!settled){settled=true;reject(new Error("تم إلغاء رفع الشاهد."));}};
         xhr.send(file);
@@ -755,7 +756,7 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
       run();
     });
   }
-  // الملفات الأكبر تستخدم TUS القابل للاستئناف، وهو الموصى به للملفات الأكبر من 6MB أو الشبكات غير المستقرة.
+  // الملفات الأكبر: TUS القابل للاستئناف مع JWT ومفتاح المشروع.
   if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع القابل للاستئناف. أعد تحميل الصفحة ثم حاول مرة أخرى.");
   const endpoint=storageBase+"/upload/resumable";
   return await new Promise((resolve,reject)=>{
@@ -768,7 +769,10 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
       uploadSize:file.size,
       uploadDataDuringCreation:true,
       removeFingerprintOnSuccess:true,
-      headers:{authorization:"Bearer "+accessToken},
+      headers:{
+        apikey:window.SUPABASE_ANON_KEY,
+        authorization:"Bearer "+accessToken
+      },
       metadata:{
         bucketName:"evidence",
         objectName:path,
