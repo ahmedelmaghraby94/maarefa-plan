@@ -708,56 +708,38 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
-  // رفع الملفات الصغيرة عبر Signed Upload URL من Supabase.
-  // هذا يفصل إنشاء تصريح الرفع عن إرسال الملف، ويجنب تعارض CORS/Authorization في بعض أجهزة Android.
-  if(file.size<=6*1024*1024){
-    if(onProgress)onProgress(0);
-    const createPromise=sb.storage.from("evidence").createSignedUploadUrl(path,{upsert:false});
-    const timed=await Promise.race([
-      createPromise,
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("تعذر تجهيز رابط رفع الشاهد خلال 15 ثانية.")),15000))
-    ]);
-    if(timed.error)throw timed.error;
-    const token=timed.data?.token;
-    if(!token)throw new Error("تعذر إنشاء رابط رفع الشاهد.");
-    if(onProgress)onProgress(5);
-    const uploadPromise=sb.storage.from("evidence").uploadToSignedUrl(path,token,file,{
-      contentType:file.type||"application/octet-stream",
-      cacheControl:"3600"
-    });
-    const result=await Promise.race([
-      uploadPromise,
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("تعذر إكمال رفع الشاهد خلال 45 ثانية. تحقق من اتصال الجوال ثم حاول مرة أخرى.")),45000))
-    ]);
-    if(result.error)throw result.error;
-    if(onProgress)onProgress(100);
-    return;
-  }
-
-  // الملفات الأكبر تستخدم TUS القابل للاستئناف.
-  if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع القابل للاستئناف. أعد تحميل الصفحة ثم حاول مرة أخرى.");
-  const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
-  const endpoint="https://"+projectId+".storage.supabase.co/storage/v1/upload/resumable";
-  return await new Promise((resolve,reject)=>{
+  // رفع الشاهد عبر Edge Function داخل نفس مشروع Supabase.
+  // هذا يتجنب تعارضات Storage/CORS التي تظهر على بعض أجهزة Android.
+  const endpoint=window.SUPABASE_URL+"/functions/v1/evidence-upload?path="+encodeURIComponent(path);
+  await new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
     let settled=false;
     const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
-    const upload=new tus.Upload(file,{
-      endpoint,
-      retryDelays:[0,3000,5000,10000,20000],
-      chunkSize:6*1024*1024,
-      uploadSize:file.size,
-      uploadDataDuringCreation:true,
-      removeFingerprintOnSuccess:true,
-      headers:{apikey:window.SUPABASE_ANON_KEY,authorization:"Bearer "+accessToken},
-      metadata:{bucketName:"evidence",objectName:path,contentType:file.type||"application/octet-stream",cacheControl:"3600"},
-      onError:error=>finish(reject,new Error(error?.message||"تعذر رفع الشاهد.")),
-      onProgress:(bytesUploaded,bytesTotal)=>{
-        const pct=bytesTotal?Math.round(bytesUploaded/bytesTotal*100):0;
-        if(onProgress)onProgress(pct);
-      },
-      onSuccess:()=>finish(resolve)
-    });
-    upload.start();
+    xhr.open("POST",endpoint,true);
+    xhr.setRequestHeader("Authorization","Bearer "+accessToken);
+    xhr.setRequestHeader("apikey",window.SUPABASE_ANON_KEY);
+    xhr.setRequestHeader("Content-Type",file.type||"application/octet-stream");
+    xhr.timeout=180000;
+    xhr.upload.onprogress=(e)=>{
+      if(e.lengthComputable&&onProgress){
+        onProgress(Math.min(100,Math.round(e.loaded/e.total*100)));
+      }
+    };
+    xhr.onerror=()=>finish(reject,new Error("تعذر الاتصال بخدمة رفع الشواهد. تحقق من اتصال الجوال ثم حاول مرة أخرى."));
+    xhr.ontimeout=()=>finish(reject,new Error("انتهت مهلة رفع الشاهد. تحقق من اتصال الجوال ثم حاول مرة أخرى."));
+    xhr.onabort=()=>finish(reject,new Error("تم إلغاء رفع الشاهد."));
+    xhr.onload=()=>{
+      let body=null;
+      try{body=xhr.responseText?JSON.parse(xhr.responseText):null}catch(_){}
+      if(xhr.status>=200&&xhr.status<300){
+        if(onProgress)onProgress(100);
+        finish(resolve,body);
+      }else{
+        finish(reject,new Error(body?.error||("تعذر رفع الشاهد (HTTP "+xhr.status+").")));
+      }
+    };
+    if(onProgress)onProgress(0);
+    xhr.send(file);
   });
 }
 async function uploadEvidence(id,inputId,msgId,btnId){
