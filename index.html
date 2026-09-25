@@ -708,18 +708,66 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
-  // استخدام TUS القابل للاستئناف عبر مضيف Storage المباشر، لتفادي تعليق طلب POST الواحد على الشبكات غير المستقرة.
   const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
-  const endpoint="https://"+projectId+".storage.supabase.co/storage/v1/upload/resumable";
+  const storageBase="https://"+projectId+".storage.supabase.co/storage/v1";
+  // الملفات الصغيرة تستخدم رفعًا مباشرًا واحدًا مع XHR لإظهار التقدم الحقيقي وتجنب انتظار TUS غير الضروري.
+  if(file.size<=6*1024*1024){
+    const objectPath=path.split("/").map(encodeURIComponent).join("/");
+    const endpoint=storageBase+"/object/evidence/"+objectPath;
+    return await new Promise((resolve,reject)=>{
+      let attempt=0, xhr=null, settled=false;
+      const run=()=>{
+        attempt++;
+        xhr=new XMLHttpRequest();
+        xhr.open("POST",endpoint,true);
+        xhr.setRequestHeader("authorization","Bearer "+accessToken);
+        xhr.setRequestHeader("cache-control","3600");
+        xhr.setRequestHeader("x-upsert","false");
+        xhr.setRequestHeader("content-type",file.type||"application/octet-stream");
+        xhr.timeout=90000;
+        xhr.upload.onprogress=e=>{
+          if(e.lengthComputable&&onProgress)onProgress(Math.round(e.loaded/e.total*100));
+        };
+        xhr.onload=()=>{
+          if(xhr.status>=200&&xhr.status<300){
+            if(onProgress)onProgress(100);
+            if(!settled){settled=true;resolve();}
+          }else if(attempt<2){
+            setTimeout(run,1000);
+          }else if(!settled){
+            settled=true;
+            let detail="";
+            try{detail=JSON.parse(xhr.responseText||"").message||""}catch{}
+            reject(new Error(detail||"تعذر رفع الشاهد ("+xhr.status+")."));
+          }
+        };
+        xhr.onerror=()=>{
+          if(attempt<2)setTimeout(run,1000);
+          else if(!settled){settled=true;reject(new Error("تعذر الاتصال بخدمة رفع الشواهد."));}
+        };
+        xhr.ontimeout=()=>{
+          if(attempt<2)setTimeout(run,1000);
+          else if(!settled){settled=true;reject(new Error("انتهت مهلة رفع الشاهد. تحقق من الاتصال ثم حاول مرة أخرى."));}
+        };
+        xhr.onabort=()=>{if(!settled){settled=true;reject(new Error("تم إلغاء رفع الشاهد."));}};
+        xhr.send(file);
+      };
+      run();
+    });
+  }
+  // الملفات الأكبر تستخدم TUS القابل للاستئناف، وهو الموصى به للملفات الأكبر من 6MB أو الشبكات غير المستقرة.
   if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع القابل للاستئناف. أعد تحميل الصفحة ثم حاول مرة أخرى.");
+  const endpoint=storageBase+"/upload/resumable";
   return await new Promise((resolve,reject)=>{
     let settled=false;
     const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
     const upload=new tus.Upload(file,{
       endpoint,
-      retryDelays:[0,1000,3000,5000,10000],
+      retryDelays:[0,3000,5000,10000,20000],
       chunkSize:6*1024*1024,
       uploadSize:file.size,
+      uploadDataDuringCreation:true,
+      removeFingerprintOnSuccess:true,
       headers:{authorization:"Bearer "+accessToken},
       metadata:{
         bucketName:"evidence",
