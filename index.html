@@ -708,12 +708,11 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
-  const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
-  const storageBase="https://"+projectId+".storage.supabase.co/storage/v1";
-  // الملفات الصغيرة: رفع مباشر مع XHR، مع إرسال مفتاح Supabase وJWT معًا كما تتطلب واجهة Storage.
+  // للملفات الصغيرة نستخدم نفس نطاق Supabase الرئيسي الذي تعمل عليه بقية طلبات المنصة.
+  // هذا يتجنب مشاكل الشبكات التي قد تمنع مضيف Storage المباشر على بعض شبكات الجوال.
   if(file.size<=6*1024*1024){
     const objectPath=path.split("/").map(encodeURIComponent).join("/");
-    const endpoint=storageBase+"/object/evidence/"+objectPath;
+    const endpoint=window.SUPABASE_URL+"/storage/v1/object/evidence/"+objectPath;
     return await new Promise((resolve,reject)=>{
       let attempt=0, settled=false;
       const run=()=>{
@@ -756,9 +755,11 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
       run();
     });
   }
-  // الملفات الأكبر: TUS القابل للاستئناف مع JWT ومفتاح المشروع.
+
+  // الملفات الأكبر تستخدم TUS عبر Storage المباشر القابل للاستئناف.
   if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع القابل للاستئناف. أعد تحميل الصفحة ثم حاول مرة أخرى.");
-  const endpoint=storageBase+"/upload/resumable";
+  const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
+  const endpoint="https://"+projectId+".storage.supabase.co/storage/v1/upload/resumable";
   return await new Promise((resolve,reject)=>{
     let settled=false;
     const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
@@ -769,16 +770,8 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
       uploadSize:file.size,
       uploadDataDuringCreation:true,
       removeFingerprintOnSuccess:true,
-      headers:{
-        apikey:window.SUPABASE_ANON_KEY,
-        authorization:"Bearer "+accessToken
-      },
-      metadata:{
-        bucketName:"evidence",
-        objectName:path,
-        contentType:file.type||"application/octet-stream",
-        cacheControl:"3600"
-      },
+      headers:{apikey:window.SUPABASE_ANON_KEY,authorization:"Bearer "+accessToken},
+      metadata:{bucketName:"evidence",objectName:path,contentType:file.type||"application/octet-stream",cacheControl:"3600"},
       onError:error=>finish(reject,new Error(error?.message||"تعذر رفع الشاهد.")),
       onProgress:(bytesUploaded,bytesTotal)=>{
         const pct=bytesTotal?Math.round(bytesUploaded/bytesTotal*100):0;
