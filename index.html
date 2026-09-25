@@ -708,24 +708,34 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
-  // رفع مباشر إلى مضيف Storage لتقليل زمن الاتصال مع ملفات الشواهد الصغيرة.
-  const endpoint=window.SUPABASE_URL.replace(".supabase.co",".storage.supabase.co")+"/storage/v1/object/evidence/"+path.split("/").map(encodeURIComponent).join("/");
-  const res=await fetch(endpoint,{
-    method:"POST",
-    headers:{
-      Authorization:"Bearer "+accessToken,
-      "Content-Type":file.type||"application/octet-stream",
-      "x-upsert":"false",
-      "cache-control":"3600"
-    },
-    body:file
+  // استخدام TUS القابل للاستئناف عبر مضيف Storage المباشر، لتفادي تعليق طلب POST الواحد على الشبكات غير المستقرة.
+  const projectId=window.SUPABASE_URL.replace("https://","").replace(".supabase.co","");
+  const endpoint="https://"+projectId+".storage.supabase.co/storage/v1/upload/resumable";
+  if(!window.tus||!window.tus.Upload)throw new Error("تعذر تحميل مكوّن الرفع القابل للاستئناف. أعد تحميل الصفحة ثم حاول مرة أخرى.");
+  return await new Promise((resolve,reject)=>{
+    let settled=false;
+    const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
+    const upload=new tus.Upload(file,{
+      endpoint,
+      retryDelays:[0,1000,3000,5000,10000],
+      chunkSize:6*1024*1024,
+      uploadSize:file.size,
+      headers:{authorization:"Bearer "+accessToken},
+      metadata:{
+        bucketName:"evidence",
+        objectName:path,
+        contentType:file.type||"application/octet-stream",
+        cacheControl:"3600"
+      },
+      onError:error=>finish(reject,new Error(error?.message||"تعذر رفع الشاهد.")),
+      onProgress:(bytesUploaded,bytesTotal)=>{
+        const pct=bytesTotal?Math.round(bytesUploaded/bytesTotal*100):0;
+        if(onProgress)onProgress(pct);
+      },
+      onSuccess:()=>finish(resolve)
+    });
+    upload.start();
   });
-  if(!res.ok){
-    let msg="تعذر رفع الشاهد";
-    try{const e=await res.json();msg=e?.message||e?.error||msg}catch{}
-    throw new Error(msg);
-  }
-  if(onProgress)onProgress(100);
 }
 async function uploadEvidence(id,inputId,msgId,btnId){
  const input=document.getElementById(inputId);
