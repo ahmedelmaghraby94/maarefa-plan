@@ -709,15 +709,15 @@ async function deleteEvidence(evidenceId,path,programId){
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
   // رفع مباشر عبر خدمة الرفع داخل Supabase مع ترويسات CORS مسموحة على Android.
-  const endpoint=window.SUPABASE_URL+"/functions/v1/evidence-upload?path="+encodeURIComponent(path);
+  const endpoint="/api/upload-evidence?path="+encodeURIComponent(path);
   await new Promise((resolve,reject)=>{
     const xhr=new XMLHttpRequest();
     let settled=false;
     const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
     xhr.open("POST",endpoint,true);
     xhr.setRequestHeader("Authorization","Bearer "+accessToken);
-    // لا نرسل apikey من المتصفح لتجنب طلب CORS إضافي على أجهزة Android.
-    xhr.setRequestHeader("Content-Type",file.type||"application/octet-stream");
+    // الطلب أصبح من نفس نطاق Vercel، لذلك إرسال المفتاح العام آمن ولا يسبب CORS.
+    xhr.setRequestHeader("apikey",window.SUPABASE_ANON_KEY);\n    xhr.setRequestHeader("Content-Type",file.type||"application/octet-stream");
     xhr.timeout=180000;
     xhr.upload.onloadstart=()=>{if(onProgress)onProgress(1)};
     xhr.upload.onprogress=(e)=>{
