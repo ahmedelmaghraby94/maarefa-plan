@@ -182,6 +182,7 @@ try{
  sb=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);
 }catch(e){ showFatal(e.message); }
 let me=null, semesters=[], programs=[], users=[], donutChart=null, barChart=null, schoolDonutChart=null, schoolBarChart=null;
+let activeAuthUserId=null, loadingAuthUserId=null;
 
 async function boot(){
  showLogin();
@@ -213,9 +214,14 @@ function showApp(){
  document.body.classList.remove("login-visible");
 }
 async function loadUser(authUser){
+ if(!authUser?.id)return;
+ // منع تنفيذ loadUser مرتين عند تسجيل الدخول: signIn و onAuthStateChange قد يصلان معًا.
+ if(loadingAuthUserId===authUser.id || activeAuthUserId===authUser.id)return;
+ loadingAuthUserId=authUser.id;
+ try{
  const {data,error}=await sb.from("profiles").select("*").eq("id",authUser.id).single();
- if(error||!data){document.getElementById("loginMsg").textContent="الحساب غير معتمد بعد. اطلب من المشرف اعتماد المستخدم.";await sb.auth.signOut();return}
- me=data;showApp();
+ if(error||!data){document.getElementById("loginMsg").textContent="الحساب غير معتمد بعد. اطلب من المشرف اعتماد المستخدم.";activeAuthUserId=null;await sb.auth.signOut();return}
+ me=data;activeAuthUserId=authUser.id;showApp();
  document.getElementById("roleBadge").textContent="منسق الخطة — أحمد المغربي   |   مدير المدرسة — أ- وديع بخاري";
  document.getElementById("userName").textContent=me.name||me.email||"المستخدم";
  document.querySelectorAll(".coordinator-only").forEach(x=>x.style.display=me.role==="coordinator"?"block":"none");
@@ -223,6 +229,7 @@ async function loadUser(authUser){
  const defaultPage=me.role==="coordinator"?"dashboard":"school";
  document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==defaultPage);
  document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===defaultPage));
+ }finally{loadingAuthUserId=null}
 }
 async function signIn(){
  loginMsg.textContent="";
@@ -247,7 +254,7 @@ async function signUp(){
  out.className="success";
  out.textContent="تم إنشاء الحساب. إذا كان تأكيد البريد معطلًا فسيتم تسجيل الدخول تلقائيًا؛ وإلا تحقق من بريدك.";
 }
-async function signOut(){await sb.auth.signOut()}
+async function signOut(){activeAuthUserId=null;loadingAuthUserId=null;me=null;await sb.auth.signOut()}
 function showAppMessage(msg){const el=document.getElementById("appMessage");if(el){el.textContent=msg;el.hidden=false}}
 function clearAppMessage(){const el=document.getElementById("appMessage");if(el){el.textContent="";el.hidden=true}}
 function timingGroups(){
