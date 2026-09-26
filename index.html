@@ -708,8 +708,7 @@ async function deleteEvidence(evidenceId,path,programId){
 }
 async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
-  // رفع الشاهد عبر Edge Function داخل نفس مشروع Supabase.
-  // هذا يتجنب تعارضات Storage/CORS التي تظهر على بعض أجهزة Android.
+  // رفع مباشر عبر خدمة الرفع داخل Supabase مع ترويسات CORS مسموحة على Android.
   const endpoint=window.SUPABASE_URL+"/functions/v1/evidence-upload?path="+encodeURIComponent(path);
   await new Promise((resolve,reject)=>{
     const xhr=new XMLHttpRequest();
@@ -717,12 +716,13 @@ async function uploadEvidenceFile(path,file,onProgress,accessToken){
     const finish=(fn,v)=>{if(settled)return;settled=true;fn(v)};
     xhr.open("POST",endpoint,true);
     xhr.setRequestHeader("Authorization","Bearer "+accessToken);
-    xhr.setRequestHeader("apikey",window.SUPABASE_ANON_KEY);
+    // لا نرسل apikey من المتصفح لتجنب طلب CORS إضافي على أجهزة Android.
     xhr.setRequestHeader("Content-Type",file.type||"application/octet-stream");
     xhr.timeout=180000;
+    xhr.upload.onloadstart=()=>{if(onProgress)onProgress(1)};
     xhr.upload.onprogress=(e)=>{
       if(e.lengthComputable&&onProgress){
-        onProgress(Math.min(100,Math.round(e.loaded/e.total*100)));
+        onProgress(Math.min(99,Math.max(1,Math.round(e.loaded/e.total*100))));
       }
     };
     xhr.onerror=()=>finish(reject,new Error("تعذر الاتصال بخدمة رفع الشواهد. تحقق من اتصال الجوال ثم حاول مرة أخرى."));
