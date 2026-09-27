@@ -484,16 +484,44 @@ function renderDashboard(){
  if(barChart)barChart.destroy();barChart=new Chart(document.getElementById("bars"),{type:"bar",data:{labels,datasets:[{label:"متوسط الإنجاز %",data:vals}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{stepSize:20}},x:{grid:{display:false}}}}});
  latest.innerHTML=programs.slice(0,8).map(x=>`<div class="evidence-row"><span><b>${x.name}</b> — ${timingLabel(x)} — ${x.owner||""}</span>${badge(x.status)} <span>${x.progress||0}%</span></div>`).join("")||"<p>لا توجد برامج.</p>";
 }
+function programDisplayGroup(p){
+ const t=String(p.execution_timing||"").trim().toLowerCase();
+ const label=String(timingLabel(p)||"").trim().toLowerCase();
+ const all=t+" "+label;
+ if(/قبل\\s*الدراسة|ما\\s*قبل\\s*الدراسة|قبل\\s*بداية\\s*الدراسة/.test(all)) return 0;
+ if(/مستمر|مستمرة|استمرار|طوال\\s*الفصل|طوال\\s*العام/.test(all)) return 2;
+ const w=Number(p.week_no)||0;
+ if(w>0)return 1;
+ const m=all.match(/(?:الأسبوع|اسبوع|week)\\s*(\\d+)/);
+ if(m)return 1;
+ return 3;
+}
+function programDisplayWeek(p){
+ const w=Number(p.week_no)||0;
+ if(w>0)return w;
+ const all=String(p.execution_timing||"")+" "+String(timingLabel(p)||"");
+ const m=all.match(/(?:الأسبوع|اسبوع|week)\\s*(\\d+)/i);
+ return m?Number(m[1]):999999;
+}
+function sortProgramsForDisplay(list){
+ return [...list].sort((a,b)=>{
+   const ga=programDisplayGroup(a),gb=programDisplayGroup(b);
+   if(ga!==gb)return ga-gb;
+   if(ga===1){const wa=programDisplayWeek(a),wb=programDisplayWeek(b);if(wa!==wb)return wa-wb;}
+   return (Number(a.plan_order)||999999)-(Number(b.plan_order)||999999);
+ });
+}
 function renderPrograms(){
  let q=(document.getElementById("q")?.value||"").toLowerCase(),sf=document.getElementById("sf")?.value||"";
  let a=programs.filter(x=>(x.name+" "+(x.owner||"")+" "+timingLabel(x)).toLowerCase().includes(q)&&(!sf||x.status===sf));
- const grouped={}; a.forEach(x=>{const w=Number(x.week_no)||0;(grouped[w]??=[]).push(x)});
+ const ordered=sortProgramsForDisplay(a),groups={};
+ ordered.forEach(x=>{const g=programDisplayGroup(x);const key=g===0?"before":g===2?"continuous":"week_"+programDisplayWeek(x);(groups[key]??=[]).push(x)});
  const weekNames=["","الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر","الحادي عشر","الثاني عشر","الثالث عشر","الرابع عشر","الخامس عشر","السادس عشر","السابع عشر","الثامن عشر"];
- const keys=Object.keys(grouped).map(Number).sort((a,b)=>a-b);
- programRows.innerHTML=keys.map(w=>{
-   const title=w>0?`الأسبوع ${weekNames[w]||w}`:"برامج غير مرتبطة بأسبوع محدد";
-   const rows=grouped[w].map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${x.progress||0}%"></i></div>${x.progress||0}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline" onclick="openProgram(${x.id})">تحرير</button></div></td></tr>`).join("");
-   return `<tr><td colspan="8" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${grouped[w].length} برنامج</td></tr>${rows}`;
+ const keys=Object.keys(groups).sort((a,b)=>{const rank=k=>k==="before"?0:k==="continuous"?2:1;const ra=rank(a),rb=rank(b);if(ra!==rb)return ra-rb;if(ra===1)return Number(a.split("_")[1])-Number(b.split("_")[1]);return 0});
+ programRows.innerHTML=keys.map(k=>{
+   const rows=groups[k],title=k==="before"?"البرامج قبل الدراسة":k==="continuous"?"البرامج المستمرة":`الأسبوع ${weekNames[Number(k.split("_")[1])]||k.split("_")[1]}`;
+   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${x.progress||0}%"></i></div>${x.progress||0}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline" onclick="openProgram(${x.id})">تحرير</button></div></td></tr>`).join("");
+   return `<tr><td colspan="8" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${rows.length} برنامج</td></tr>${trs}`;
  }).join("")||"<tr><td colspan='8'>لا توجد برامج مطابقة.</td></tr>";
 }
 function uploadEvidenceFromPrograms(id){
@@ -688,7 +716,8 @@ async function renderEvidence(){
  const byProgram={};
  for(const x of (r.data||[])){(byProgram[x.program_id]??=[]).push(x)}
  const canUpload=me?.role==="coordinator";
- evidencePrograms.innerHTML=programs.map((p,i)=>{
+ const ordered=sortProgramsForDisplay(programs);
+ evidencePrograms.innerHTML=ordered.map((p,i)=>{
    const files=byProgram[p.id]||[];
    const inputId=`evFile_${p.id}`, msgId=`evMsg_${p.id}`, btnId=`evBtn_${p.id}`;
    return `<div class="evidence-program ${files.length?'done':''}">
