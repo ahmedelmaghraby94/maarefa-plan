@@ -198,7 +198,8 @@ async function boot(){
    if(session) await loadUser(session.user);
    sb.auth.onAuthStateChange(async(_e,s)=>{try{if(s) await loadUser(s.user); else showLogin()}catch(err){showFatal(err.message||String(err))}});
  }catch(e){
-   document.getElementById("loginMsg").textContent="تعذر الاتصال بقاعدة البيانات: "+(e.message||e);
+   console.error("Auth initialization error",e);
+   showLogin();
  }
 }
 function showLogin(){
@@ -220,7 +221,7 @@ async function loadUser(authUser){
  loadingAuthUserId=authUser.id;
  try{
  const {data,error}=await sb.from("profiles").select("*").eq("id",authUser.id).single();
- if(error||!data){document.getElementById("loginMsg").textContent="الحساب غير معتمد بعد. اطلب من المشرف اعتماد المستخدم.";activeAuthUserId=null;await sb.auth.signOut();return}
+ if(error||!data){console.error("Profile lookup failed",error);activeAuthUserId=null;await sb.auth.signOut();showLogin();return}
  me=data;activeAuthUserId=authUser.id;showApp();
  document.getElementById("roleBadge").textContent="منسق الخطة — أحمد المغربي   |   مدير المدرسة — أ- وديع بخاري";
  document.getElementById("userName").textContent=me.name||me.email||"المستخدم";
