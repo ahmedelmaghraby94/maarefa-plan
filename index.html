@@ -23,8 +23,8 @@ body{background:#f4f7fb;color:var(--ink)}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:#f4f7fb;color:var(--navy);font-weight:700;z-index:100}
 .center{background:radial-gradient(circle at 15% 10%,#fff 0,#edf5ff 42%,#e7eef8 100%);padding:24px}
 .login-wrap{width:min(920px,96vw);display:grid;gap:18px;justify-items:center}
-.login-brand{width:100%;display:flex;align-items:center;gap:24px;padding:22px 28px;background:#fff;border:1px solid #dfe8f3;border-radius:24px;box-shadow:0 18px 50px #153c6b12}
-.login-brand img{width:210px;max-height:120px;object-fit:contain}.login-brand span,.eyebrow{color:var(--blue);font-size:13px;font-weight:800}.login-brand h1{margin:6px 0;color:var(--navy);font-size:30px}.login-brand p{margin:0;color:var(--muted)}
+.login-brand{width:100%;display:flex;align-items:center;gap:24px;padding:150px 28px 22px;background:#fff;border:1px solid #dfe8f3;border-radius:24px;box-shadow:0 18px 50px #153c6b12;position:relative}
+.login-brand img{position:absolute;top:18px;right:22px;width:150px;max-height:105px;object-fit:contain}.login-brand span,.eyebrow{color:var(--blue);font-size:13px;font-weight:800}.login-brand h1{margin:6px 0;color:var(--navy);font-size:30px}.login-brand p{margin:0;color:var(--muted)}
 .login{width:min(520px,100%);padding:28px 34px;text-align:right;border-radius:22px}.login-title{display:flex;align-items:center;gap:12px;margin-bottom:22px}.login-title h2{margin:0 0 4px;color:var(--navy)}.login-title small{color:var(--muted)}.login-icon{width:48px;height:48px;display:grid;place-items:center;background:var(--sky);border-radius:14px;font-size:22px}.login label{display:block;font-size:13px;font-weight:700;margin:13px 0 7px;color:#334155}.login input{display:block;width:100%;padding:14px 15px;margin:0;border:1px solid #d7e0ec;border-radius:12px;background:#fbfdff;outline:none}.login input:focus{border-color:#6ea8ff;box-shadow:0 0 0 4px #2563eb12}.login-btn{width:100%;margin-top:18px;padding:14px;border-radius:12px;font-weight:800;background:linear-gradient(135deg,#1d4ed8,#2563eb)}.login-footer{color:var(--muted);font-size:12px}
 header{height:78px;padding:0 28px;background:#fff;box-shadow:0 2px 15px #123b7010}.head-center{display:flex;align-items:center;gap:10px}.head-center select{padding:9px 12px;border:1px solid #dbe4ef;border-radius:10px;color:var(--navy);background:#fff}.secure-badge{font-size:11px;color:#15803d;background:#ecfdf3;padding:7px 10px;border-radius:20px;font-weight:700}.user-chip{display:flex;align-items:center;gap:7px;color:#334155;font-size:12px}.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef4ff}.head-actions span#roleBadge{font-size:11px}
 .shell{min-height:calc(100vh - 78px)}aside{width:245px;background:linear-gradient(180deg,#123b70,#0e315d);border:0;padding:18px 14px;box-shadow:inset -1px 0 #ffffff10}.nav{color:#e8f1ff!important;border-radius:11px!important;margin-bottom:7px;padding:12px 14px;text-align:right}.nav:hover{background:#ffffff12!important}.nav.active{background:#2b73d9!important;color:#fff!important;box-shadow:0 8px 18px #00000018}.page{max-width:1500px;padding:28px}.hero{background:transparent}.hero h2,.school-copy h2{color:var(--navy)}.stats{grid-template-columns:repeat(5,1fr)}.stat{box-shadow:0 7px 22px #163c6b0a}.stat b{color:var(--navy)}
@@ -486,7 +486,14 @@ function renderDashboard(){
 function renderPrograms(){
  let q=(document.getElementById("q")?.value||"").toLowerCase(),sf=document.getElementById("sf")?.value||"";
  let a=programs.filter(x=>(x.name+" "+(x.owner||"")+" "+timingLabel(x)).toLowerCase().includes(q)&&(!sf||x.status===sf));
- programRows.innerHTML=a.map(x=>`<tr><td><b>${x.name}</b></td><td>${timingLabel(x)}</td><td>${x.execution_date||"—"}</td><td>${x.owner||"-"}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${x.progress||0}%"></i></div>${x.progress||0}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline" onclick="openProgram(${x.id})">تحرير</button></div></td></tr>`).join("");
+ const grouped={}; a.forEach(x=>{const w=Number(x.week_no)||0;(grouped[w]??=[]).push(x)});
+ const weekNames=["","الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر","الحادي عشر","الثاني عشر","الثالث عشر","الرابع عشر","الخامس عشر","السادس عشر","السابع عشر","الثامن عشر"];
+ const keys=Object.keys(grouped).map(Number).sort((a,b)=>a-b);
+ programRows.innerHTML=keys.map(w=>{
+   const title=w>0?`الأسبوع ${weekNames[w]||w}`:"برامج غير مرتبطة بأسبوع محدد";
+   const rows=grouped[w].map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${x.progress||0}%"></i></div>${x.progress||0}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline" onclick="openProgram(${x.id})">تحرير</button></div></td></tr>`).join("");
+   return `<tr><td colspan="8" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${grouped[w].length} برنامج</td></tr>${rows}`;
+ }).join("")||"<tr><td colspan='8'>لا توجد برامج مطابقة.</td></tr>";
 }
 function uploadEvidenceFromPrograms(id){
  const p=programs.find(x=>x.id===id); if(!p)return;
@@ -612,19 +619,23 @@ function openEvidencePrintWindow(rows,title){
  w.document.close();
 }
 
-function openProgram(id){let x=programs.find(a=>a.id===id)||{name:"",week_no:0,execution_timing:"غير محدد",execution_date:"",owner:"",status:"لم ينفذ",progress:0};modalBody.innerHTML=`<h2>${id?"تحرير البرنامج":"إضافة برنامج"}</h2><div class="form"><input id="pn" value="${escapeAttr(x.name)}" placeholder="اسم البرنامج"><input id="pt" value="${escapeAttr(x.execution_timing||timingLabel(x))}" placeholder="موعد التنفيذ حسب الخطة (مثال: الأسبوع الأول)"><input id="pd" type="date" value="${x.execution_date||""}" title="تاريخ التنفيذ الدقيق (اختياري)"><input id="po" value="${escapeAttr(x.owner||"")}" placeholder="المنفذ"><select id="ps">${["لم ينفذ","قيد التنفيذ","متأخر","تم التنفيذ"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select><input id="pp" type="number" min="0" max="100" value="${x.progress||0}" placeholder="نسبة الإنجاز"></div><p class="hint">موعد التنفيذ المستخرج من ملف الخطة يظهر كما هو. التاريخ الميلادي/الهجري الدقيق لا يضاف تلقائيًا إذا لم يرد في الملف.</p><div class="actions"><button onclick="saveProgram(${id||0})">حفظ</button>${id?`<button class="outline" onclick="deleteProgram(${id})">حذف</button>`:""}</div>`;modal.hidden=false}
+function openProgram(id){
+ let x=programs.find(a=>a.id===id)||{name:"",week_no:0,execution_timing:"غير محدد",execution_date:"",owner:"",status:"لم ينفذ",progress:0};
+ const names=["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر","الحادي عشر","الثاني عشر","الثالث عشر","الرابع عشر","الخامس عشر","السادس عشر","السابع عشر","الثامن عشر"];
+ const weekOptions=[["0","غير محدد / حسب الموعد"],...names.map((n,i)=>[String(i+1),`الأسبوع ${n}`])];
+ modalBody.innerHTML=`<h2>${id?"تحرير البرنامج":"إضافة برنامج"}</h2><div class="form"><input id="pn" value="${escapeAttr(x.name)}" placeholder="اسم البرنامج"><select id="pw">${weekOptions.map(o=>`<option value="${o[0]}" ${Number(x.week_no)===Number(o[0])?"selected":""}>${o[1]}</option>`).join("")}</select><input id="pt" value="${escapeAttr(x.execution_timing||timingLabel(x))}" placeholder="موعد التنفيذ حسب الخطة (مثال: الأسبوع الأول)"><input id="pd" type="date" value="${x.execution_date||""}" title="تاريخ التنفيذ الدقيق (اختياري)"><input id="po" value="${escapeAttr(x.owner||"")}" placeholder="المنفذ"><select id="ps">${["لم ينفذ","قيد التنفيذ","متأخر","تم التنفيذ"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select><input id="pp" type="number" min="0" max="100" value="${x.progress||0}" placeholder="نسبة الإنجاز"></div><p class="hint">اختر أسبوع البرنامج هنا. عند الحفظ سيظهر البرنامج تلقائيًا داخل مجموعة برامج ذلك الأسبوع.</p><div class="actions"><button onclick="saveProgram(${id||0})">حفظ</button>${id?`<button class="outline" onclick="deleteProgram(${id})">حذف</button>`:""}</div>`;modal.hidden=false}
 function withTimeout(promise,ms,message){
  return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(message)),ms))]);
 }
 async function saveProgram(id){
- const nameEl=document.getElementById("pn"), timingEl=document.getElementById("pt"), dateEl=document.getElementById("pd"), ownerEl=document.getElementById("po"), statusEl=document.getElementById("ps"), progressEl=document.getElementById("pp");
+ const nameEl=document.getElementById("pn"), weekEl=document.getElementById("pw"), timingEl=document.getElementById("pt"), dateEl=document.getElementById("pd"), ownerEl=document.getElementById("po"), statusEl=document.getElementById("ps"), progressEl=document.getElementById("pp");
  if(!nameEl||!timingEl||!dateEl||!ownerEl||!statusEl||!progressEl){alert("تعذر فتح نموذج التحرير بشكل صحيح. أغلق النافذة وافتح تحرير البرنامج مرة أخرى.");return}
  if(!me || me.role!=="coordinator"){alert("تحرير البرامج متاح لمنسق الخطة فقط.");return}
  const name=nameEl.value.trim();
  if(!name){nameEl.focus();alert("اكتب اسم البرنامج أولًا.");return}
  const timing=timingEl.value.trim()||"غير محدد";
  const progress=Math.max(0,Math.min(100,Number(progressEl.value)||0));
- const obj={name,execution_timing:timing,execution_date:dateEl.value||null,week_no:weekNumber(timing),owner:ownerEl.value.trim(),status:statusEl.value,progress};
+ const selectedWeek=Number(weekEl?.value||0); const obj={name,execution_timing:timing,execution_date:dateEl.value||null,week_no:selectedWeek||weekNumber(timing),owner:ownerEl.value.trim(),status:statusEl.value,progress};
  const saveBtn=document.querySelector('#modal .actions button:not(.outline)');
  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent="جارٍ الحفظ..."}
  try{
