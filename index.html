@@ -45,6 +45,7 @@ header{height:78px;padding:0 28px;background:#fff;box-shadow:0 2px 15px #123b701
 
 .evidence-list-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.evidence-list-head span{color:#667085;font-size:13px}.evidence-program{border:1px solid #dfe6f1;border-radius:14px;padding:16px;margin:12px 0;background:#fff}.evidence-program-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:12px}.evidence-program-title{font-weight:800;color:#123b70;font-size:17px}.evidence-program-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;color:#667085;font-size:13px}.evidence-upload-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.evidence-upload-line input[type=file]{max-width:360px;flex:1}.evidence-upload-line button{white-space:nowrap}.evidence-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.evidence-file{display:inline-flex;align-items:center;gap:8px;background:#f5f8fc;border:1px solid #e1e8f2;border-radius:9px;padding:7px 10px;font-size:13px}.evidence-file .danger{padding:4px 8px;font-size:12px}.evidence-msg{width:100%;font-size:13px}.evidence-program.done{border-color:#b7dfc4}
 body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{padding-top:6px;height:64px}}
+<style>.users-password-note{font-size:12px;color:#64748b}.table td button{font-size:12px}.table td button:disabled{opacity:.5;cursor:not-allowed}</style>
 </style>
 <div id="login" class="center" hidden>
   <div class="login-wrap">
@@ -118,7 +119,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 
 <section id="users" class="page" hidden>
  <div class="hero"><div><h2>المستخدمون</h2><p>منسق الخطة — أحمد المغربي   |   مدير المدرسة — أ- وديع بخاري. مدير المدرسة للعرض فقط.</p><div id="ctx-users" class="semester-context"></div></div><button onclick="openUser()">+ إضافة مستخدم</button></div>
- <div class="card table"><table><thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
+ <div class="card table"><table><thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th><th>إدارة الحساب</th></tr></thead><tbody id="userRows"></tbody></table></div>
 </section>
 
 <section id="semesters" class="page" hidden>
@@ -839,10 +840,85 @@ async function uploadEvidence(id,inputId,msgId,btnId){
    msg.className="error evidence-msg";msg.textContent=e?.message||String(e);console.error("Evidence upload error",e);
  }finally{btn.disabled=false;btn.textContent="رفع الشواهد"}
 }
-async function loadUsers(){let r=await sb.from("profiles").select("*").order("created_at");users=r.data||[];userRows.innerHTML=users.map(u=>`<tr><td>${u.name||"-"}</td><td>${u.email}</td><td>${u.role==="coordinator"?"مشرف":"مدير المدرسة"}</td><td>${u.approved?"مقبول":"معلق"}</td><td><button onclick="toggleUser('${u.id}',${!u.approved})">${u.approved?"تعليق":"قبول"}</button></td></tr>`).join("")}
-async function toggleUser(id,v){await sb.from("profiles").update({approved:v}).eq("id",id);loadUsers()}
-function openUser(){modalBody.innerHTML=`<h2>إضافة مستخدم</h2><p>إنشاء الحساب يتم أولًا من Supabase Authentication، ثم يظهر هنا لتحديد الصلاحية والقبول.</p><div class="form"><input id="un" placeholder="الاسم"><input id="ue" placeholder="البريد الإلكتروني"><select id="ur"><option value="school_viewer">مدير المدرسة — عرض فقط</option><option value="coordinator">مشرف</option></select></div><div class="actions"><button onclick="saveUserProfile()">حفظ</button></div>`;modal.hidden=false}
+async function loadUsers(){
+ if(!me || me.role!=="coordinator")return;
+ const r=await sb.from("profiles").select("*").order("created_at");
+ if(r.error){userRows.innerHTML=`<tr><td colspan="5" class="error">${esc(r.error.message)}</td></tr>`;return}
+ users=r.data||[];
+ userRows.innerHTML=users.map(u=>{
+   const self=String(u.id)===String(me.id);
+   const role=u.role==="coordinator"?"منسق الخطة":"مدير المدرسة";
+   const status=u.approved?"مقبول":"معلق";
+   return `<tr>
+     <td><b>${esc(u.name||"-")}</b></td>
+     <td dir="ltr">${esc(u.email||"-")}</td>
+     <td>${role}</td>
+     <td>${status}</td>
+     <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+       <button class="outline" onclick="openPasswordManager(${jsString(u.id)},${jsString(u.name||u.email||"الحساب")})" ${self?"disabled":""}>🔑 تعديل كلمة المرور</button>
+       <button onclick="toggleUser('${u.id}',${!u.approved})">${u.approved?"تعليق":"قبول"}</button>
+       <button class="danger" onclick="deleteUserAccount(${jsString(u.id)},${jsString(u.name||u.email||"الحساب")})" ${self?"disabled":""}>🗑️ حذف الحساب</button>
+     </div></td>
+   </tr>`;
+ }).join("")||"<tr><td colspan='5'>لا توجد حسابات.</td></tr>";
+}
+async function toggleUser(id,v){
+ if(!me || me.role!=="coordinator"){alert("هذه العملية متاحة لمنسق الخطة فقط.");return}
+ const r=await sb.from("profiles").update({approved:v}).eq("id",id);
+ if(r.error)alert("تعذر تحديث حالة الحساب: "+r.error.message);
+ await loadUsers();
+}
+function openUser(){
+ modalBody.innerHTML=`<h2>إضافة مستخدم</h2><p>إنشاء الحساب يتم أولًا من Supabase Authentication، ثم يظهر هنا لتحديد الصلاحية والقبول.</p><div class="form"><input id="un" placeholder="الاسم"><input id="ue" placeholder="البريد الإلكتروني"><select id="ur"><option value="school_viewer">مدير المدرسة — عرض فقط</option><option value="coordinator">مشرف</option></select></div><div class="actions"><button onclick="saveUserProfile()">حفظ</button></div>`;
+ modal.hidden=false;
+}
 async function saveUserProfile(){alert("أنشئ المستخدم من Authentication في Supabase أولًا، ثم سنربط ملفه وصلاحياته هنا.");closeModal()}
+function openPasswordManager(id,name){
+ if(!me || me.role!=="coordinator"){alert("تعديل كلمات المرور متاح لمنسق الخطة فقط.");return}
+ modalBody.innerHTML=`<h2>تعديل كلمة المرور</h2><p class="hint">الحساب: <b>${esc(name)}</b><br>لا يمكن عرض كلمة المرور القديمة. أدخل كلمة مرور جديدة، ويمكنك إظهارها أو إخفاؤها قبل الحفظ.</p>
+ <div class="form"><label>كلمة المرور الجديدة</label><div style="display:flex;gap:8px"><input id="newUserPassword" type="password" minlength="6" placeholder="6 أحرف على الأقل" style="flex:1"><button type="button" class="outline" onclick="togglePasswordVisibility()">👁️ إظهار</button></div><div id="userPasswordMsg"></div></div>
+ <div class="actions"><button id="saveUserPasswordBtn" onclick="saveUserPassword(${jsString(id)})">حفظ كلمة المرور</button><button class="outline" onclick="closeModal()">إلغاء</button></div>`;
+ modal.hidden=false;
+}
+function togglePasswordVisibility(){
+ const input=document.getElementById("newUserPassword"),btn=event?.currentTarget;
+ if(!input)return;
+ input.type=input.type==="password"?"text":"password";
+ if(btn)btn.textContent=input.type==="password"?"👁️ إظهار":"🙈 إخفاء";
+}
+async function manageUserRequest(payload){
+ const sessionResult=await sb.auth.getSession();
+ const token=sessionResult?.data?.session?.access_token;
+ if(!token)throw new Error("انتهت جلسة الدخول، أعد تسجيل الدخول.");
+ const res=await fetch((window.SUPABASE_URL||"")+"/functions/v1/manage-user",{
+   method:"POST",
+   headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"apikey":window.SUPABASE_ANON_KEY},
+   body:JSON.stringify(payload)
+ });
+ let body=null;try{body=await res.json()}catch(_){}
+ if(!res.ok)throw new Error(body?.error||"تعذر تنفيذ العملية.");
+ return body;
+}
+async function saveUserPassword(id){
+ const input=document.getElementById("newUserPassword"),btn=document.getElementById("saveUserPasswordBtn"),msg=document.getElementById("userPasswordMsg");
+ const password=input?.value||"";
+ if(password.length<6){if(msg)msg.innerHTML='<p class="error">كلمة المرور يجب أن تكون 6 أحرف على الأقل.</p>';return}
+ if(btn){btn.disabled=true;btn.textContent="جارٍ الحفظ..."}
+ try{
+   await manageUserRequest({action:"update_password",userId:id,password});
+   closeModal();showAppMessage("تم تغيير كلمة مرور الحساب بنجاح.","success");await loadUsers();
+ }catch(e){if(msg)msg.innerHTML=`<p class="error">${esc(e.message||String(e))}</p>`}
+ finally{if(btn){btn.disabled=false;btn.textContent="حفظ كلمة المرور"}}
+}
+async function deleteUserAccount(id,name){
+ if(!me || me.role!=="coordinator"){alert("حذف الحسابات متاح لمنسق الخطة فقط.");return}
+ if(String(id)===String(me.id)){alert("لا يمكن حذف حساب المنسق الحالي.");return}
+ if(!confirm(`هل أنت متأكد من حذف حساب «${name}» نهائيًا؟\nسيتم حذف حساب الدخول ولا يمكن التراجع عن العملية.`))return;
+ try{
+   await manageUserRequest({action:"delete_user",userId:id});
+   showAppMessage("تم حذف الحساب بنجاح.","success");await loadUsers();
+ }catch(e){alert(e.message||String(e))}
+}
 async function openSemester(){modalBody.innerHTML=`<h2>فصل دراسي جديد</h2><div class="form"><input id="sn" placeholder="مثال: الفصل الدراسي الأول 1449هـ"><input id="sy" placeholder="العام الدراسي"></div><div class="actions"><button onclick="saveSemester()">إنشاء</button></div>`;modal.hidden=false}
 async function saveSemester(){let r=await sb.from("semesters").insert({name:sn.value,academic_year:sy.value});if(r.error)return alert(r.error.message);closeModal();refresh()}
 async function renderSemesters(){
