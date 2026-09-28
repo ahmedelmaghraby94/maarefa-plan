@@ -889,9 +889,9 @@ async function manageUserRequest(payload){
  const sessionResult=await sb.auth.getSession();
  const token=sessionResult?.data?.session?.access_token;
  if(!token)throw new Error("انتهت جلسة الدخول، أعد تسجيل الدخول.");
- const res=await fetch((window.SUPABASE_URL||"")+"/functions/v1/manage-portal-users",{
+ const res=await fetch((typeof SUPABASE_URL!=="undefined"?SUPABASE_URL:(window.SUPABASE_URL||""))+"/functions/v1/manage-portal-users",{
    method:"POST",
-   headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"apikey":window.SUPABASE_ANON_KEY},
+   headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"apikey":(typeof SUPABASE_ANON_KEY!=="undefined"?SUPABASE_ANON_KEY:window.SUPABASE_ANON_KEY)},
    body:JSON.stringify(payload)
  });
  let body=null;try{body=await res.json()}catch(_){}
