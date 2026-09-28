@@ -6,6 +6,13 @@
 <meta name="theme-color" content="#173b70"></head>
 <body>
 <div id="loading">جارٍ التحميل...</div>
+<script>
+/* حماية بدء التشغيل: لا تسمح ببقاء شاشة التحميل عالقة إذا تأخر أحد ملفات JavaScript الخارجية. */
+setTimeout(function(){
+  var l=document.getElementById("loading"), login=document.getElementById("login");
+  if(l && !l.hidden && login){ l.hidden=true; login.hidden=false; }
+},8000);
+</script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f6f8fc;color:#182235;font-family:Tahoma,Arial,sans-serif}button,input,select{font:inherit}button{border:0;border-radius:10px;padding:11px 17px;background:#2563eb;color:#fff;cursor:pointer}button.outline{background:#fff;color:#334155;border:1px solid #dbe2ea}.center{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#eaf0ff,#f8fafc)}.card{background:#fff;border:1px solid #e7ebf2;border-radius:16px;padding:20px;box-shadow:0 6px 24px #1720330a}.login{width:min(420px,92vw);text-align:center;padding:34px}.login input{display:block;width:100%;padding:13px;margin:10px 0;border:1px solid #d9e0ea;border-radius:10px}.login button{width:100%;margin-top:8px}.logo{font-size:44px}.msg{color:#b91c1c;margin-top:10px}.head-title{display:flex;align-items:center;gap:12px}.logo-mini{font-size:27px}.head-title b{display:block}.head-title small{display:block;color:#64748b;margin-top:3px}.head-actions{display:flex;gap:10px;align-items:center}.head-actions span{background:#eef4ff;color:#1d4ed8;border-radius:20px;padding:6px 10px;font-size:12px}header{height:72px;background:#fff;border-bottom:1px solid #e5e9f0;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}.shell{display:flex;min-height:calc(100vh - 72px)}aside{width:235px;background:#fff;border-left:1px solid #e5e9f0;padding:16px}.nav{display:block;width:100%;text-align:right;background:transparent;color:#475569;margin-bottom:6px}.nav.active{background:#eef4ff;color:#1d4ed8}main{flex:1}.page{max-width:1450px;margin:auto;padding:28px}.hero{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.hero h2{margin:0 0 5px}.hero p{margin:0;color:#64748b}.hero select,.filters input,.filters select,.card select,.form input,.form select{padding:11px;border:1px solid #dbe2ea;border-radius:9px;background:#fff}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:18px}.stat{background:#fff;border:1px solid #e7ebf2;border-radius:15px;padding:17px}.stat span{font-size:13px;color:#64748b}.stat b{display:block;font-size:28px;margin-top:7px}.charts{display:grid;grid-template-columns:1fr 1.5fr;gap:18px;margin-bottom:18px}.charts .card{min-height:300px}.charts canvas{width:100%!important;height:260px!important;max-height:260px}.filters{display:flex;gap:10px;margin-bottom:14px}.filters input{flex:1}table{width:100%;border-collapse:collapse}th,td{padding:12px 9px;border-bottom:1px solid #edf0f4;text-align:right;font-size:13px}th{color:#64748b;background:#fafbfc}.pill{padding:5px 9px;border-radius:20px;font-size:12px}.done{background:#dcfce7;color:#166534}.doing{background:#fef3c7;color:#92400e}.not{background:#e2e8f0;color:#475569}.late{background:#fee2e2;color:#b91c1c}.bar{height:8px;background:#e9eef5;border-radius:8px;min-width:100px}.bar i{display:block;height:100%;background:#2563eb;border-radius:8px}.upload{border:2px dashed #dbe2ea;border-radius:14px;padding:20px;margin:16px 0;display:grid;gap:10px}.upload small{color:#64748b}.evidence-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-bottom:1px solid #edf0f4}.read-only{text-align:center}.view-icon{font-size:44px}.modal{position:fixed;inset:0;background:#11182766;display:grid;place-items:center;z-index:20} .modal[hidden]{display:none!important}.modal-card{width:min(560px,94vw);background:#fff;border-radius:18px;padding:25px;position:relative}.app-message{margin:12px 28px 0;padding:12px 16px;border-radius:10px;border:1px solid #fecaca;background:#fff1f2;color:#991b1b;font-weight:700}.app-message[hidden]{display:none!important}.close{position:absolute;left:14px;top:12px;border-radius:50%;padding:4px 10px;background:#eef2f7;color:#334155}.form{display:grid;gap:10px}.actions{display:flex;gap:8px;margin-top:14px}
 .semester-context{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 12px;border:1px solid #dbe7f5;border-radius:999px;background:linear-gradient(90deg,#f8fbff,#eef5ff);color:#173b70;font-size:12px;font-weight:800}.semester-context .year{color:#475569;font-weight:700}.page-context{display:flex;justify-content:center;margin:0 0 16px}.page-context .semester-context{margin-top:0;box-shadow:0 4px 14px #173b7010}
@@ -173,8 +180,14 @@ const APP_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABL8AAAK6CAMAAADv
 window.SUPABASE_ANON_KEY = "sb_publishable_s2JZT0K7t5vo3DIc5YOlkg_R1wS4Fso";
 let sb=null;
 function showFatal(msg){
- const l=document.getElementById("loading");
- if(l){l.innerHTML=`<div style="text-align:center;max-width:720px;margin:auto;padding:30px"><h2>تعذر تشغيل المنصة</h2><p>${msg}</p><p style="color:#64748b">جرّب تحديث الصفحة بـ Ctrl + F5، وإذا استمرت المشكلة أرسل صورة الرسالة.</p></div>`;l.hidden=false;}
+ const l=document.getElementById("loading"), login=document.getElementById("login"), app=document.getElementById("app");
+ if(app)app.hidden=true;
+ if(login){
+   login.hidden=false;
+   const m=document.getElementById("loginMsg");
+   if(m)m.textContent="تعذر تهيئة الاتصال بالمنصة: "+(msg||"خطأ غير معروف")+" — أعد تحميل الصفحة.";
+ }
+ if(l)l.hidden=true;
 }
 try{
  if(!window.supabase || !window.supabase.createClient) throw new Error("لم يتم تحميل مكتبة Supabase");
