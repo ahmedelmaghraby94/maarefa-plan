@@ -608,90 +608,75 @@ async function printAllEvidence(){
 function openEvidencePrintWindow(rows,title){
  const w=window.open("","_blank");
  if(!w){alert("يرجى السماح بالنوافذ المنبثقة للموقع حتى تتم الطباعة.");return}
- // هذه الصفحة مخصصة للشواهد نفسها فقط: لا تقرير، ولا بطاقات إحصائية، ولا بيانات إضافية.
- // ترتيب الشواهد يأتي من ترتيب البرامج في الخطة، ثم ترتيب رفع الشواهد داخل كل برنامج.
  const ordered=[...rows].sort((a,b)=>{
-   const pa=Number(a.p?.plan_order||0), pb=Number(b.p?.plan_order||0);
+   const pa=Number(a.p?.plan_order||0),pb=Number(b.p?.plan_order||0);
    if(pa!==pb)return pa-pb;
-   const ca=new Date(a.e?.created_at||0).getTime(), cb=new Date(b.e?.created_at||0).getTime();
-   return ca-cb;
+   return new Date(a.e?.created_at||0).getTime()-new Date(b.e?.created_at||0).getTime();
  });
- const items=ordered.map((x,i)=>{
+ const items=ordered.map(x=>{
    const url=String(x.url||"");
    const name=escHtml(x.e?.file_name||"الشاهد");
    const low=String(x.e?.file_name||"").toLowerCase();
    const isImg=/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(low);
    const isPdf=/\.pdf$/i.test(low);
-   if(!url)return `<section class="evidence-page"><div class="missing">تعذر إنشاء رابط هذا الشاهد.</div></section>`;
-   if(isImg)return `<section class="evidence-page image-page"><img src="${url}" alt="${name}"></section>`;
-   if(isPdf)return `<section class="pdf-source" data-url="${url}" data-name="${name}"></section>`;
-   return `<section class="evidence-page"><div class="file-box"><div class="file-name">${name}</div><a href="${url}" target="_blank">فتح الشاهد</a></div></section>`;
+   if(!url)return '<section class="evidence-page"><div class="missing">تعذر إنشاء رابط هذا الشاهد.</div></section>';
+   if(isImg)return '<section class="evidence-page image-page"><img src="'+url+'" alt="'+name+'"></section>';
+   if(isPdf)return '<section class="pdf-source" data-url="'+url+'" data-name="'+name+'"></section>';
+   return '<section class="evidence-page"><div class="file-box"><div class="file-name">'+name+'</div><a href="'+url+'" target="_blank">فتح الشاهد</a></div></section>';
  }).join("");
- w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>طباعة الشواهد</title>
+ w.document.open();
+ w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${escHtml(title||"طباعة الشواهد")}</title>
  <style>
- @page{size:A4 portrait;margin:0}
- *{box-sizing:border-box}
+ @page{size:A4 portrait;margin:0}*{box-sizing:border-box}
  html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Tahoma,Arial,sans-serif}
- .evidence-page{width:210mm;height:297mm;margin:0;padding:10mm;display:flex;align-items:center;justify-content:center;page-break-after:always;break-after:page;overflow:hidden;background:#fff}
- .evidence-page:last-child{page-break-after:auto;break-after:auto}
- .image-page{padding:8mm}
+ .evidence-page{width:210mm;min-height:297mm;margin:0;padding:10mm;display:flex;align-items:center;justify-content:center;page-break-after:always;break-after:page;overflow:hidden;background:#fff}
+ .evidence-page:last-child{page-break-after:auto;break-after:auto}.image-page{padding:8mm}
  .image-page img{display:block;max-width:194mm;max-height:281mm;width:auto;height:auto;object-fit:contain;margin:auto}
- .file-box{width:100%;padding:30mm 10mm;text-align:center;border:1px dashed #bbb}
- .file-name{font-size:14pt;margin-bottom:12mm;overflow-wrap:anywhere}
- .file-box a{font-size:12pt;color:#111;text-decoration:none}
- .missing{font-size:12pt;text-align:center}
- .pdf-source{display:none}
- canvas.pdf-page{display:block;width:190mm;height:auto;margin:0 auto;page-break-after:always;break-after:page;max-width:190mm}
- canvas.pdf-page:last-child{page-break-after:auto;break-after:auto}
- @media print{html,body{width:210mm;background:#fff}.evidence-page{box-shadow:none}.file-box a{display:none}}
+ .file-box{width:100%;padding:30mm 10mm;text-align:center;border:1px dashed #bbb}.file-name{font-size:14pt;margin-bottom:12mm;overflow-wrap:anywhere}
+ .file-box a{font-size:12pt;color:#111;text-decoration:none}.missing{font-size:12pt;text-align:center}
+ .pdf-source{display:none}canvas.pdf-page{display:block;width:190mm;height:auto;margin:0 auto;page-break-after:always;break-after:page;max-width:190mm}
+ canvas.pdf-page:last-child{page-break-after:auto;break-after:auto}@media print{html,body{width:210mm;background:#fff}.file-box a{display:none}}
  </style></head><body>${items}
- <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"><\/script>
+ <div id="print-status" style="display:none">جارٍ تجهيز الطباعة...</div>
  <script type="module">
  (async()=>{
+   const finish=()=>setTimeout(()=>{try{window.focus();window.print()}catch(e){}},350);
    try{
      const sources=[...document.querySelectorAll('.pdf-source')];
-     const mod=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
-     mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
-     for(const src of sources){
-       try{
-         const pdf=await mod.getDocument({url:src.dataset.url}).promise;
-         for(let n=1;n<=pdf.numPages;n++){
-           const page=await pdf.getPage(n);
-           const base=page.getViewport({scale:1});
-           const maxW=190/25.4*96, maxH=277/25.4*96;
-           const scale=Math.min(maxW/base.width,maxH/base.height);
-           const viewport=page.getViewport({scale:Math.max(scale,0.1)});
-           const canvas=document.createElement('canvas');
-           canvas.className='pdf-page';
-           canvas.width=Math.ceil(viewport.width*1.5);
-           canvas.height=Math.ceil(viewport.height*1.5);
-           canvas.style.width='190mm';
-           canvas.style.maxHeight='277mm';
-           canvas.style.objectFit='contain';
-           const ctx=canvas.getContext('2d');
-           const renderViewport=page.getViewport({scale:Math.max(scale,0.1)*1.5});
-           await page.render({canvasContext:ctx,viewport:renderViewport}).promise;
-           src.parentNode.insertBefore(canvas,src);
+     if(sources.length){
+       const mod=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+       mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+       for(const src of sources){
+         try{
+           const pdf=await mod.getDocument({url:src.dataset.url}).promise;
+           for(let n=1;n<=pdf.numPages;n++){
+             const page=await pdf.getPage(n),base=page.getViewport({scale:1});
+             const maxW=190/25.4*96,maxH=277/25.4*96;
+             const scale=Math.min(maxW/base.width,maxH/base.height);
+             const viewport=page.getViewport({scale:Math.max(scale,0.1)});
+             const canvas=document.createElement('canvas');canvas.className='pdf-page';
+             canvas.width=Math.ceil(viewport.width*1.5);canvas.height=Math.ceil(viewport.height*1.5);
+             const renderViewport=page.getViewport({scale:Math.max(scale,0.1)*1.5});
+             await page.render({canvasContext:canvas.getContext('2d'),viewport:renderViewport}).promise;
+             src.parentNode.insertBefore(canvas,src);
+           }
+         }catch(err){
+           const bad=document.createElement('section');bad.className='evidence-page';
+           bad.innerHTML='<div class="missing">تعذر عرض ملف PDF للطباعة. افتح الشاهد من المنصة واطبعه مباشرة.</div>';
+           src.parentNode.insertBefore(bad,src);
          }
-       }catch(err){
-         const bad=document.createElement('section');
-         bad.className='evidence-page';
-         bad.innerHTML='<div class="missing">تعذر عرض ملف PDF للطباعة. افتح الشاهد من المنصة واطبعه مباشرة.</div>';
-         src.parentNode.insertBefore(bad,src);
+         src.remove();
        }
-       src.remove();
      }
-     // الصور تحتاج وقتًا قصيرًا حتى تُحمّل قبل فتح نافذة الطباعة.
      const imgs=[...document.images];
      await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r})));
-     setTimeout(()=>window.print(),500);
-   }catch(err){
-     console.error(err);
-     setTimeout(()=>window.print(),700);
-   }
+     finish();
+   }catch(err){console.error(err);finish()}
  })();
  <\/script></body></html>`);
  w.document.close();
+ // إذا تأخر محرك المتصفح في تشغيل السكربت، لا نترك نافذة الطباعة بيضاء.
+ setTimeout(()=>{try{if(!w.closed){w.focus();w.print()}}catch(e){}},5000);
 }
 
 function openProgram(id){
