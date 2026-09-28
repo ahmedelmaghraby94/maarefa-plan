@@ -886,9 +886,16 @@ function togglePasswordVisibility(btn){
  if(btn)btn.textContent=input.type==="password"?"👁️ إظهار":"🙈 إخفاء";
 }
 async function manageUserRequest(payload){
- const sessionResult=await sb.auth.getSession();
- const token=sessionResult?.data?.session?.access_token;
- if(!token)throw new Error("انتهت جلسة الدخول، أعد تسجيل الدخول.");
+ // تجديد جلسة المنسق أولًا لضمان إرسال أحدث Access Token إلى Edge Function.
+ let sessionResult=await sb.auth.getSession();
+ let session=sessionResult?.data?.session;
+ if(!session)throw new Error("انتهت جلسة المنسق، يرجى تسجيل الدخول مرة أخرى.");
+ try{
+   const refreshed=await sb.auth.refreshSession();
+   if(refreshed?.data?.session) session=refreshed.data.session;
+ }catch(_){/* نستخدم الجلسة الحالية إذا تعذر التجديد */}
+ const token=session?.access_token;
+ if(!token)throw new Error("انتهت جلسة المنسق، يرجى تسجيل الدخول مرة أخرى.");
  const res=await fetch((typeof SUPABASE_URL!=="undefined"?SUPABASE_URL:(window.SUPABASE_URL||""))+"/functions/v1/manage-portal-users",{
    method:"POST",
    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"apikey":(typeof SUPABASE_ANON_KEY!=="undefined"?SUPABASE_ANON_KEY:window.SUPABASE_ANON_KEY)},
