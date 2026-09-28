@@ -760,14 +760,35 @@ async function renderEvidence(){
  for(const x of (r.data||[])){(byProgram[x.program_id]??=[]).push(x)}
  const canUpload=me?.role==="coordinator";
  const ordered=sortProgramsForDisplay(programs);
- evidencePrograms.innerHTML=ordered.map((p,i)=>{
-   const files=byProgram[p.id]||[];
-   const inputId=`evFile_${p.id}`, msgId=`evMsg_${p.id}`, btnId=`evBtn_${p.id}`;
-   return `<div class="evidence-program ${files.length?'done':''}">
-     <div class="evidence-program-head"><div><div class="evidence-program-title">${i+1}. ${esc(p.name)}</div><div class="evidence-program-meta"><span>${esc(timingLabel(p))}</span><span>• ${esc(p.owner||"غير محدد")}</span><span>• ${p.progress||0}%</span></div></div>${badge(p.status)}</div>
-     ${canUpload?`<div class="evidence-upload-line"><input id="${inputId}" type="file" multiple><button id="${btnId}" onclick="uploadEvidence(${p.id},'${inputId}','${msgId}','${btnId}')">رفع الشواهد</button><div id="${msgId}" class="evidence-msg"></div></div>`:""}
-     <div class="evidence-files">${files.length?files.map(x=>{const path=x.file_path||x.file_url||"";return `<span class="evidence-file">📎 ${esc(x.file_name)} <button class="outline" onclick="openEvidence(${jsString(path)})">فتح</button>${canUpload?`<button class="danger" onclick="deleteEvidence(${x.id},${jsString(path)},${p.id})">حذف</button>`:""}</span>`}).join(""):"<span class='muted'>لا توجد شواهد لهذا البرنامج.</span>"}</div>
-   </div>`;
+ const groups={};
+ ordered.forEach(p=>{
+   const g=programDisplayGroup(p);
+   const key=g===0?"before":g===2?"continuous":g===3?"appointment":"week_"+programDisplayWeek(p);
+   (groups[key]??=[]).push(p);
+ });
+ const weekNames=["","الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر","الحادي عشر","الثاني عشر","الثالث عشر","الرابع عشر","الخامس عشر","السادس عشر","السابع عشر","الثامن عشر"];
+ const keys=Object.keys(groups).sort((a,b)=>{
+   const rank=k=>k==="before"?0:k==="continuous"?2:k==="appointment"?3:1;
+   const ra=rank(a),rb=rank(b);
+   if(ra!==rb)return ra-rb;
+   if(ra===1)return Number(a.split("_")[1])-Number(b.split("_")[1]);
+   return 0;
+ });
+ let number=0;
+ evidencePrograms.innerHTML=keys.map(k=>{
+   const rows=groups[k];
+   const title=k==="before"?"برامج ما قبل الدراسة":k==="continuous"?"البرامج المستمرة":k==="appointment"?"البرامج حسب الموعد":`الأسبوع ${weekNames[Number(k.split("_")[1])]||k.split("_")[1]}`;
+   const cards=rows.map(p=>{
+     const files=byProgram[p.id]||[];
+     const inputId=`evFile_${p.id}`, msgId=`evMsg_${p.id}`, btnId=`evBtn_${p.id}`;
+     number++;
+     return `<div class="evidence-program ${files.length?'done':''}">
+       <div class="evidence-program-head"><div><div class="evidence-program-title">${number}. ${esc(p.name)}</div><div class="evidence-program-meta"><span>${esc(timingLabel(p))}</span><span>• ${esc(p.owner||"غير محدد")}</span><span>• ${p.progress||0}%</span></div></div>${badge(p.status)}</div>
+       ${canUpload?`<div class="evidence-upload-line"><input id="${inputId}" type="file" multiple><button id="${btnId}" onclick="uploadEvidence(${p.id},'${inputId}','${msgId}','${btnId}')">رفع الشواهد</button><div id="${msgId}" class="evidence-msg"></div></div>`:""}
+       <div class="evidence-files">${files.length?files.map(x=>{const path=x.file_path||x.file_url||"";return `<span class="evidence-file">📎 ${esc(x.file_name)} <button class="outline" onclick="openEvidence(${jsString(path)})">فتح</button>${canUpload?`<button class="danger" onclick="deleteEvidence(${x.id},${jsString(path)},${p.id})">حذف</button>`:""}</span>`}).join(""):"<span class='muted'>لا توجد شواهد لهذا البرنامج.</span>"}</div>
+     </div>`;
+   }).join("");
+   return `<div class="evidence-group"><div class="evidence-group-title">📅 ${title} — ${rows.length} برنامج</div>${cards}</div>`;
  }).join("");
 }
 async function deleteEvidence(evidenceId,path,programId){
