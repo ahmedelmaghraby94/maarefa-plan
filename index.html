@@ -889,7 +889,7 @@ async function manageUserRequest(payload){
  const sessionResult=await sb.auth.getSession();
  const token=sessionResult?.data?.session?.access_token;
  if(!token)throw new Error("انتهت جلسة الدخول، أعد تسجيل الدخول.");
- const res=await fetch((window.SUPABASE_URL||"")+"/functions/v1/manage-user",{
+ const res=await fetch((window.SUPABASE_URL||"")+"/functions/v1/manage-portal-users",{
    method:"POST",
    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"apikey":window.SUPABASE_ANON_KEY},
    body:JSON.stringify(payload)
@@ -904,7 +904,7 @@ async function saveUserPassword(id){
  if(password.length<6){if(msg)msg.innerHTML='<p class="error">كلمة المرور يجب أن تكون 6 أحرف على الأقل.</p>';return}
  if(btn){btn.disabled=true;btn.textContent="جارٍ الحفظ..."}
  try{
-   await manageUserRequest({action:"update_password",userId:id,password});
+   await manageUserRequest({action:"password",userId:id,password});
    closeModal();showAppMessage("تم تغيير كلمة مرور الحساب بنجاح.","success");await loadUsers();
  }catch(e){if(msg)msg.innerHTML=`<p class="error">${esc(e.message||String(e))}</p>`}
  finally{if(btn){btn.disabled=false;btn.textContent="حفظ كلمة المرور"}}
@@ -914,7 +914,7 @@ async function deleteUserAccount(id,name){
  if(String(id)===String(me.id)){alert("لا يمكن حذف حساب المنسق الحالي.");return}
  if(!confirm(`هل أنت متأكد من حذف حساب «${name}» نهائيًا؟\nسيتم حذف حساب الدخول ولا يمكن التراجع عن العملية.`))return;
  try{
-   await manageUserRequest({action:"delete_user",userId:id});
+   await manageUserRequest({action:"delete",userId:id});
    showAppMessage("تم حذف الحساب بنجاح.","success");await loadUsers();
  }catch(e){alert(e.message||String(e))}
 }
