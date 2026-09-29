@@ -435,46 +435,55 @@ async function printSelectedEvidence(){
 }
 
 async function exportSemesterArchive(){
+ const btn=[...document.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('تصدير ملف الفصل كاملاً'));
+ const original=btn?.innerHTML||"📦 تصدير ملف الفصل كاملاً";
+ const setBusy=(msg)=>{if(btn){btn.disabled=true;btn.innerHTML="⏳ "+msg}};
  try{
-  if(!window.JSZip){alert("تعذر تحميل أداة التصدير. أعد تحميل الصفحة وحاول مرة أخرى.");return}
+  if(!window.JSZip)throw new Error("تعذر تحميل أداة التصدير. أعد تحميل الصفحة ثم حاول مرة أخرى.");
   const semester=currentSemester();
-  if(!semester){alert("لا يوجد فصل دراسي محدد للتصدير.");return}
-  if(!programs.length){alert("لا توجد برامج في الفصل الدراسي المحدد.");return}
+  if(!semester)throw new Error("لا يوجد فصل دراسي محدد للتصدير.");
+  if(!programs.length)throw new Error("لا توجد برامج في الفصل الدراسي المحدد.");
+  setBusy("جاري تجهيز الفصل...");
   const zip=new JSZip(), root=zip.folder("الفصل الدراسي");
-  const safe=s=>String(s||"").replace(/[\\/:*?"<>|]/g,"_").replace(/\\s+/g," ").trim()||"ملف";
+  const safe=s=>String(s??"").replace(/[\\/:*?"<>|]/g,"_").replace(/\\s+/g," ").trim()||"ملف";
   const csvEscape=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
-  const csv=[
-   ["البرنامج","موعد التنفيذ","التاريخ الدقيق","المنفذ","الحالة","نسبة الإنجاز","عدد الشواهد"],
-   ...programs.map(p=>[p.name,timingLabel(p),p.execution_date||"",p.owner||"",p.status||"",p.progress||0,p.evidence?.[0]?.count||0])
-  ].map(r=>r.map(csvEscape).join(",")).join("\r\n");
+  const csv=[["البرنامج","موعد التنفيذ","التاريخ الدقيق","المنفذ","الحالة","نسبة الإنجاز","عدد الشواهد"],...programs.map(p=>[p.name,timingLabel(p),p.execution_date||"",p.owner||"",p.status||"",p.progress||0,p.evidence?.[0]?.count||0])].map(r=>r.map(csvEscape).join(",")).join("\r\n");
   root.file("البرامج.csv","\\ufeff"+csv);
   root.file("بيانات الفصل.json",JSON.stringify({semester,exported_at:new Date().toISOString(),programs},null,2));
-  const reportHtml=buildExportFinalReportHtml(semester);
-  root.file("التقرير النهائي.html",reportHtml);
+  root.file("التقرير النهائي.html",buildExportFinalReportHtml(semester));
+  setBusy("جاري جمع الشواهد...");
   const evidenceFolder=root.folder("الشواهد");
   const rows=await getProgramEvidenceRows(programs.map(x=>x.id));
   const errors=[];
-  for(const row of rows){
+  for(let i=0;i<rows.length;i++){
+   const row=rows[i];
    const path=row.e?.file_path||row.e?.file_url;
    if(!path)continue;
+   setBusy("جاري تنزيل الشواهد "+(i+1)+" / "+rows.length);
    try{
-    const sr=await sb.storage.from("evidence").createSignedUrl(path,3600);
-    const url=sr.data?.signedUrl;
-    if(!url)throw new Error(sr.error?.message||"تعذر إنشاء رابط الشاهد");
-    const res=await fetch(url);
-    if(!res.ok)throw new Error("تعذر تنزيل الملف");
-    const blob=await res.blob();
+    const dl=await sb.storage.from("evidence").download(path);
+    if(dl.error||!dl.data)throw new Error(dl.error?.message||"تعذر تنزيل الملف");
     const folder=evidenceFolder.folder(safe(row.p?.name||"برنامج"));
-    folder.file(safe(row.e?.file_name||"شاهد"),blob);
-   }catch(err){errors.push((row.p?.name||"برنامج")+" — "+(row.e?.file_name||"شاهد")+" — "+(err?.message||"خطأ"))}
+    folder.file(safe(row.e?.file_name||"شاهد"),dl.data);
+   }catch(err){
+    errors.push((row.p?.name||"برنامج")+" — "+(row.e?.file_name||"شاهد")+" — "+(err?.message||"خطأ"));
+   }
   }
   if(errors.length)root.file("ملفات تعذر تصديرها.txt",errors.join("\n"));
-  const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6}});
-  const a=document.createElement("a"), url=URL.createObjectURL(blob);
+  setBusy("جاري إنشاء الملف...");
+  const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6},streamFiles:true});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=safe((semester.name||"الفصل")+" - "+(semester.academic_year||"")+".zip");
-  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
-  alert("تم تصدير الفصل الدراسي مع البرامج والشواهد والتقرير النهائي في ملف ZIP واحد.");
- }catch(err){console.error(err);alert(err?.message||"تعذر تصدير ملفات الفصل الدراسي.")}
+  a.style.display="none";document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  if(errors.length)alert("تم تصدير ملف الفصل، لكن تعذر تنزيل "+errors.length+" شاهد. ستجد قائمة بها داخل الملف.");
+  else alert("تم تصدير الفصل الدراسي مع البرامج والشواهد والتقرير النهائي في ملف ZIP واحد.");
+ }catch(err){
+  console.error("exportSemesterArchive",err);
+  alert(err?.message||"تعذر تصدير ملفات الفصل الدراسي.");
+ }finally{
+  if(btn){btn.disabled=false;btn.innerHTML=original}
+ }
 }
 function buildExportFinalReportHtml(semester){
  const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=programs.filter(x=>x.status==="لم ينفذ").length,avg=n?Math.round(programs.reduce((s,x)=>s+(x.progress||0),0)/n):0;
