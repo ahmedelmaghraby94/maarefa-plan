@@ -445,10 +445,10 @@ async function exportSemesterArchive(){
   if(!programs.length)throw new Error("لا توجد برامج في الفصل الدراسي المحدد.");
   setBusy("جاري تجهيز الفصل...");
   const zip=new JSZip(), root=zip.folder("الفصل الدراسي");
-  const safe=s=>String(s??"").replace(/[\\/:*?"<>|]/g,"_").replace(/\\s+/g," ").trim()||"ملف";
+  const safe=s=>String(s??"").replace(/[\\/:*?"<>|]/g,"_").replace(/\s+/g," ").trim()||"ملف";
   const csvEscape=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
   const csv=[["البرنامج","موعد التنفيذ","التاريخ الدقيق","المنفذ","الحالة","نسبة الإنجاز","عدد الشواهد"],...programs.map(p=>[p.name,timingLabel(p),p.execution_date||"",p.owner||"",p.status||"",p.progress||0,p.evidence?.[0]?.count||0])].map(r=>r.map(csvEscape).join(",")).join("\r\n");
-  root.file("البرامج.csv","\\ufeff"+csv);
+  root.file("البرامج.csv","\ufeff"+csv);
   root.file("بيانات الفصل.json",JSON.stringify({semester,exported_at:new Date().toISOString(),programs},null,2));
   root.file("التقرير النهائي.html",buildExportFinalReportHtml(semester));
   setBusy("جاري جمع الشواهد...");
