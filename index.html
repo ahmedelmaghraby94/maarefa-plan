@@ -139,7 +139,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 
 <section id="reports" class="page" hidden>
  <div class="hero"><div><h2>الطباعة والتقارير النهائية</h2><p>طباعة الشواهد منفردة أو مجمعة وإصدار تقرير ختامي للفصل.</p><div id="ctx-reports" class="semester-context"></div></div>
- <div><button onclick="printSelectedEvidence()">🖨️ طباعة الشواهد المحددة</button> <button onclick="printFinalReport()">📊 إصدار التقرير النهائي</button> <button class="outline" onclick="exportSemesterArchive()">📦 تصدير ملف الفصل كاملاً</button></div></div>
+ <div><button onclick="printSelectedEvidence()">🖨️ طباعة الشواهد المحددة</button> <button onclick="printFinalReport()">📊 إصدار التقرير النهائي</button> <button class="outline" onclick="exportSemesterArchive()">📄 تصدير ملف الفصل PDF</button></div></div>
  <div class="card">
    <div class="report-controls">
     <label>اختيار البرامج للطباعة</label>
@@ -444,55 +444,55 @@ async function printSelectedEvidence(){
 }
 
 async function exportSemesterArchive(){
- const btn=[...document.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('تصدير ملف الفصل كاملاً'));
- const original=btn?.innerHTML||"📦 تصدير ملف الفصل كاملاً";
+ const btn=[...document.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('تصدير ملف الفصل PDF'));
+ const original=btn?.innerHTML||"📄 تصدير ملف الفصل PDF";
  const setBusy=(msg)=>{if(btn){btn.disabled=true;btn.innerHTML="⏳ "+msg}};
  try{
-  if(!window.JSZip)throw new Error("تعذر تحميل أداة التصدير. أعد تحميل الصفحة ثم حاول مرة أخرى.");
   const semester=currentSemester();
   if(!semester)throw new Error("لا يوجد فصل دراسي محدد للتصدير.");
   if(!programs.length)throw new Error("لا توجد برامج في الفصل الدراسي المحدد.");
-  setBusy("جاري تجهيز الفصل...");
-  const zip=new JSZip(), root=zip.folder("الفصل الدراسي");
-  const safe=s=>String(s??"").replace(/[\\/:*?"<>|]/g,"_").replace(/\s+/g," ").trim()||"ملف";
-  const csvEscape=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
-  const csv=[["البرنامج","موعد التنفيذ","التاريخ الدقيق","المنفذ","الحالة","نسبة الإنجاز","عدد الشواهد"],...programs.map(p=>[p.name,timingLabel(p),p.execution_date||"",p.owner||"",p.status||"",p.progress||0,p.evidence?.[0]?.count||0])].map(r=>r.map(csvEscape).join(",")).join("\r\n");
-  root.file("البرامج.csv","\ufeff"+csv);
-  root.file("بيانات الفصل.json",JSON.stringify({semester,exported_at:new Date().toISOString(),programs},null,2));
-  root.file("التقرير النهائي.html",buildExportFinalReportHtml(semester));
   setBusy("جاري جمع الشواهد...");
-  const evidenceFolder=root.folder("الشواهد");
   const rows=await getProgramEvidenceRows(programs.map(x=>x.id));
-  const errors=[];
-  for(let i=0;i<rows.length;i++){
-   const row=rows[i];
-   const path=row.e?.file_path||row.e?.file_url;
-   if(!path)continue;
-   setBusy("جاري تنزيل الشواهد "+(i+1)+" / "+rows.length);
-   try{
-    const dl=await sb.storage.from("evidence").download(path);
-    if(dl.error||!dl.data)throw new Error(dl.error?.message||"تعذر تنزيل الملف");
-    const folder=evidenceFolder.folder(safe(row.p?.name||"برنامج"));
-    folder.file(safe(row.e?.file_name||"شاهد"),dl.data);
-   }catch(err){
-    errors.push((row.p?.name||"برنامج")+" — "+(row.e?.file_name||"شاهد")+" — "+(err?.message||"خطأ"));
-   }
-  }
-  if(errors.length)root.file("ملفات تعذر تصديرها.txt",errors.join("\n"));
-  setBusy("جاري إنشاء الملف...");
-  const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6},streamFiles:true});
-  const url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download=safe((semester.name||"الفصل")+" - "+(semester.academic_year||"")+".zip");
-  a.style.display="none";document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),3000);
-  if(errors.length)alert("تم تصدير ملف الفصل، لكن تعذر تنزيل "+errors.length+" شاهد. ستجد قائمة بها داخل الملف.");
-  else alert("تم تصدير الفصل الدراسي مع البرامج والشواهد والتقرير النهائي في ملف ZIP واحد.");
+  setBusy("جاري تجهيز ملف PDF...");
+  openSemesterPdfWindow(semester,rows);
  }catch(err){
   console.error("exportSemesterArchive",err);
-  alert(err?.message||"تعذر تصدير ملفات الفصل الدراسي.");
+  alert(err?.message||"تعذر تصدير ملف الفصل بصيغة PDF.");
  }finally{
   if(btn){btn.disabled=false;btn.innerHTML=original}
  }
+}
+function openSemesterPdfWindow(semester,rows){
+ const w=window.open("","_blank");
+ if(!w){alert("يرجى السماح بالنوافذ المنبثقة للموقع حتى يتم إنشاء ملف PDF.");return}
+ const ordered=[...rows].sort((a,b)=>{
+   const pa=Number(a.p?.plan_order||0),pb=Number(b.p?.plan_order||0);
+   if(pa!==pb)return pa-pb;
+   return new Date(a.e?.created_at||0).getTime()-new Date(b.e?.created_at||0).getTime();
+ });
+ const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=programs.filter(x=>x.status==="لم ينفذ").length,avg=n?Math.round(programs.reduce((s,x)=>s+progressValue(x),0)/n):0;
+ const total=Math.max(1,n),pDone=Math.round(d/total*100),pDoing=Math.round(doing/total*100),pLate=Math.round(late/total*100);
+ const donut="conic-gradient(#16a34a 0 "+pDone+"%,#f59e0b "+pDone+"% "+(pDone+pDoing)+"%,#ef4444 "+(pDone+pDoing)+"% "+(pDone+pDoing+pLate)+"%,#94a3b8 "+(pDone+pDoing+pLate)+"% 100%)";
+ const groups=timingGroups();
+ const programRows=programs.map((p,i)=>{
+   const ev=ordered.filter(x=>Number(x.p?.id)===Number(p.id)).length;
+   return '<tr><td>'+(i+1)+'</td><td class="program-name">'+escHtml(p.name||"")+'</td><td>'+escHtml(timingLabel(p)||"")+'</td><td>'+escHtml(p.execution_date||"-")+'</td><td>'+escHtml(p.owner||"-")+'</td><td>'+escHtml(p.status||"")+'</td><td>'+progressValue(p)+'%</td><td>'+ev+'</td></tr>';
+ }).join("");
+ const groupRows=groups.map(g=>'<tr><td>'+escHtml(g.label)+'</td><td>'+g.count+'</td><td>'+Math.round(g.avg||0)+'%</td></tr>').join("");
+ const evidenceItems=ordered.map((x,i)=>{
+   const url=String(x.url||""),name=escHtml(x.e?.file_name||"الشاهد"),program=escHtml(x.p?.name||"برنامج"),low=String(x.e?.file_name||"").toLowerCase();
+   const isImg=/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(low),isPdf=/\.pdf$/i.test(low);
+   if(!url)return '<section class="evidence-page"><div class="evidence-head">الشاهد '+(i+1)+' — '+program+'</div><div class="missing">تعذر إنشاء رابط هذا الشاهد.</div></section>';
+   if(isImg)return '<section class="evidence-page"><div class="evidence-head">الشاهد '+(i+1)+' — '+program+'<small>'+name+'</small></div><img src="'+url+'" alt="'+name+'"></section>';
+   if(isPdf)return '<section class="pdf-source" data-url="'+url+'" data-name="'+name+'" data-program="'+program+'" data-index="'+(i+1)+'"></section>';
+   return '<section class="evidence-page"><div class="evidence-head">الشاهد '+(i+1)+' — '+program+'<small>'+name+'</small></div><div class="file-box">هذا الملف من نوع '+name+' ولا يمكن دمجه تلقائيًا داخل PDF.</div></section>';
+ }).join("");
+ const report='<section class="report-page"><h1>التقرير الشامل النهائي للخطة التشغيلية</h1><div class="meta">الفصل الدراسي: '+escHtml(semester.name||"")+' &nbsp; | &nbsp; العام الدراسي: '+escHtml(semester.academic_year||"")+'</div><div class="cards"><div class="metric">البرامج<b>'+n+'</b></div><div class="metric">تم التنفيذ<b>'+d+'</b></div><div class="metric">قيد التنفيذ<b>'+doing+'</b></div><div class="metric">متأخر<b>'+late+'</b></div><div class="metric">متوسط الإنجاز<b>'+avg+'%</b></div></div><div class="summary-grid"><div class="chart-box"><h2>مستوى التنفيذ</h2><div class="donut" style="background:'+donut+'"></div><div class="legend">تم التنفيذ '+d+' | قيد التنفيذ '+doing+' | متأخر '+late+' | لم ينفذ '+nd+'</div></div><div class="chart-box"><h2>متوسط الإنجاز حسب موعد التنفيذ</h2><table class="table"><thead><tr><th>موعد التنفيذ</th><th>عدد البرامج</th><th>متوسط الإنجاز</th></tr></thead><tbody>'+(groupRows||'<tr><td colspan="3">لا توجد بيانات</td></tr>')+'</tbody></table></div></div><div class="signatures"><span>منسق الخطة — أحمد المغربي</span><span>مدير المدرسة — أ- وديع بخاري</span></div></section>';
+ const data='<section class="data-page"><h1>بيانات البرامج</h1><div class="meta">تلي التقرير الشامل النهائي مباشرة</div><table class="table programs-table"><thead><tr><th>م</th><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th></tr></thead><tbody>'+programRows+'</tbody></table></section>';
+ w.document.open();
+ w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+escHtml((semester.name||"الفصل")+" - ملف PDF")+'</title><style>@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#172033;font-family:Tahoma,Arial,sans-serif;font-size:10pt;line-height:1.5}h1{color:#173b70;text-align:center;font-size:20pt;margin:0 0 5mm}.meta{text-align:center;color:#64748b;margin-bottom:7mm}.report-page{min-height:270mm;page-break-after:always;break-after:page}.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:4mm;margin:7mm 0}.metric{border:1px solid #dbe2ea;border-radius:8px;padding:4mm;text-align:center}.metric b{display:block;font-size:19pt;color:#173b70}.summary-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:5mm}.chart-box{border:1px solid #dbe2ea;border-radius:8px;padding:4mm;min-height:75mm}.chart-box h2{text-align:center;color:#173b70;font-size:13pt}.donut{width:55mm;height:55mm;border-radius:50%;margin:7mm auto;position:relative}.donut:after{content:"";position:absolute;inset:12mm;background:#fff;border-radius:50%}.legend{text-align:center;font-size:8.5pt}.table{width:100%;border-collapse:collapse}.table th,.table td{border:1px solid #cbd5e1;padding:2.5mm;text-align:right;vertical-align:top}.table th{background:#eef4ff;color:#173b70}.programs-table{font-size:8pt}.programs-table thead{display:table-header-group}.program-name{font-weight:700}.signatures{margin-top:25mm;display:flex;justify-content:space-between;font-weight:700}.data-page{page-break-after:always;break-after:page}.evidence-page{width:194mm;min-height:280mm;margin:0 auto;padding:5mm;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;break-after:page;overflow:hidden}.evidence-page img{display:block;max-width:184mm;max-height:250mm;width:auto;height:auto;object-fit:contain;margin:auto}.evidence-head{width:100%;font-weight:700;color:#173b70;text-align:center;margin-bottom:4mm}.evidence-head small{display:block;color:#64748b;font-weight:400;margin-top:1mm}.file-box{width:100%;padding:25mm 8mm;text-align:center;border:1px dashed #bbb}.missing{text-align:center}.pdf-source{display:none}canvas.pdf-page{display:block;width:184mm;height:auto;margin:0 auto;page-break-after:always;break-after:page}.pdf-source-wrap{page-break-after:always;break-after:page}@media print{html,body{width:210mm;background:#fff}}</style></head><body>'+report+data+evidenceItems+'<script type="module">(async()=>{try{const sources=[...document.querySelectorAll(".pdf-source")];if(sources.length){const mod=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");mod.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";for(const src of sources){try{const pdf=await mod.getDocument({url:src.dataset.url}).promise;for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){const page=await pdf.getPage(pageNo),base=page.getViewport({scale:1}),maxW=184/25.4*96,maxH=265/25.4*96,scale=Math.min(maxW/base.width,maxH/base.height),vp=page.getViewport({scale:Math.max(scale,.1)}),wrap=document.createElement("section");wrap.className="pdf-source-wrap";const label=document.createElement("div");label.className="pdf-label";label.textContent="الشاهد "+src.dataset.index+" — "+src.dataset.program+" — "+src.dataset.name+" (صفحة "+pageNo+" من "+pdf.numPages+")";wrap.appendChild(label);const canvas=document.createElement("canvas");canvas.className="pdf-page";canvas.width=Math.ceil(vp.width*1.5);canvas.height=Math.ceil(vp.height*1.5);const rv=page.getViewport({scale:Math.max(scale,.1)*1.5});await page.render({canvasContext:canvas.getContext("2d"),viewport:rv}).promise;wrap.appendChild(canvas);src.parentNode.insertBefore(wrap,src)}}catch(err){const bad=document.createElement("section");bad.className="evidence-page";bad.innerHTML="<div class=\\"missing\\">تعذر عرض ملف PDF لهذا الشاهد داخل الملف الموحد.</div>";src.parentNode.insertBefore(bad,src)}src.remove()}}const imgs=[...document.images];await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r})));setTimeout(()=>{try{window.focus();window.print()}catch(e){}},500)}catch(e){console.error(e);setTimeout(()=>{try{window.print()}catch(_){}},500)}})();<\\/script></body></html>');
+ w.document.close();
+ setTimeout(()=>{try{if(!w.closed){w.focus();w.print()}}catch(e){}},12000);
 }
 function buildExportFinalReportHtml(semester){
  const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=programs.filter(x=>x.status==="لم ينفذ").length,avg=n?Math.round(programs.reduce((s,x)=>s+(progressValue(x)),0)/n):0;
