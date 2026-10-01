@@ -796,7 +796,8 @@ async function saveProgram(id){
  const name=nameEl.value.trim();
  if(!name){nameEl.focus();alert("اكتب اسم البرنامج أولًا.");return}
  const timing=timingEl.value.trim()||"غير محدد";
- const enteredProgress=Math.max(0,Math.min(100,Number(progressEl.value)||0));\n const progress=statusEl.value==="تم التنفيذ"?100:statusEl.value==="لم ينفذ"?0:enteredProgress;
+ const enteredProgress=Math.max(0,Math.min(100,Number(progressEl.value)||0));
+ const progress=statusEl.value==="تم التنفيذ"?100:statusEl.value==="لم ينفذ"?0:enteredProgress;
  const selectedWeek=Number(weekEl?.value||0); const obj={name,execution_timing:timing,execution_date:dateEl.value||null,week_no:selectedWeek||weekNumber(timing),owner:ownerEl.value.trim(),status:statusEl.value,progress};
  const saveBtn=document.querySelector('#modal .actions button:not(.outline)');
  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent="جارٍ الحفظ..."}
