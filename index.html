@@ -784,7 +784,7 @@ function openEvidencePrintWindow(rows,title){
 
 function openProgram(id){
  let x=programs.find(a=>a.id===id)||{name:"",week_no:0,execution_timing:"غير محدد",execution_date:"",owner:"",status:"لم ينفذ",progress:0};
- if(id && window.me && me.role!=="coordinator"){
+ if(id && (!window.me || me.role!=="coordinator")){
    modalBody.innerHTML=`<h2 style="margin-top:0">${esc(x.name||"البرنامج")}</h2><div class="card" style="margin:12px 0"><p><b>موعد التنفيذ:</b> ${esc(timingLabel(x)||"-")}</p><p><b>التاريخ:</b> ${esc(x.execution_date||"—")}</p><p><b>المنفذ:</b> ${esc(x.owner||"-")}</p><p><b>الحالة:</b> ${badge(x.status)}</p><p><b>نسبة الإنجاز:</b> ${progressValue(x)}%</p><p><b>عدد الشواهد المحفوظة:</b> ${Number(x.evidence?.[0]?.count)||0}</p></div><div class="actions"><button class="outline" onclick="closeModal()">إغلاق</button></div>`;
    modal.hidden=false; return;
  }
