@@ -784,6 +784,10 @@ function openEvidencePrintWindow(rows,title){
 
 function openProgram(id){
  let x=programs.find(a=>a.id===id)||{name:"",week_no:0,execution_timing:"غير محدد",execution_date:"",owner:"",status:"لم ينفذ",progress:0};
+ if(id && window.me && me.role!=="coordinator"){
+   modalBody.innerHTML=`<h2 style="margin-top:0">${esc(x.name||"البرنامج")}</h2><div class="card" style="margin:12px 0"><p><b>موعد التنفيذ:</b> ${esc(timingLabel(x)||"-")}</p><p><b>التاريخ:</b> ${esc(x.execution_date||"—")}</p><p><b>المنفذ:</b> ${esc(x.owner||"-")}</p><p><b>الحالة:</b> ${badge(x.status)}</p><p><b>نسبة الإنجاز:</b> ${progressValue(x)}%</p><p><b>عدد الشواهد المحفوظة:</b> ${Number(x.evidence?.[0]?.count)||0}</p></div><div class="actions"><button class="outline" onclick="closeModal()">إغلاق</button></div>`;
+   modal.hidden=false; return;
+ }
  const names=["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر","الحادي عشر","الثاني عشر","الثالث عشر","الرابع عشر","الخامس عشر","السادس عشر","السابع عشر","الثامن عشر"];
  const weekOptions=[["0","غير محدد / حسب الموعد"],...names.map((n,i)=>[String(i+1),`الأسبوع ${n}`])];
  modalBody.innerHTML=`<h2>${id?"تحرير البرنامج":"إضافة برنامج"}</h2><div class="form"><input id="pn" value="${escapeAttr(x.name)}" placeholder="اسم البرنامج"><select id="pw">${weekOptions.map(o=>`<option value="${o[0]}" ${Number(x.week_no)===Number(o[0])?"selected":""}>${o[1]}</option>`).join("")}</select><input id="pt" value="${escapeAttr(x.execution_timing||timingLabel(x))}" placeholder="موعد التنفيذ حسب الخطة (مثال: الأسبوع الأول)"><input id="pd" type="date" value="${x.execution_date||""}" title="تاريخ التنفيذ الدقيق (اختياري)"><input id="po" value="${escapeAttr(x.owner||"")}" placeholder="المنفذ"><select id="ps" onchange="if(this.value==='قيد التنفيذ')document.getElementById('pp').value=50">${["لم ينفذ","قيد التنفيذ","متأخر","تم التنفيذ"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select><input id="pp" type="number" min="0" max="100" value="${progressValue(x)}" placeholder="نسبة الإنجاز"></div><p class="hint">اختر أسبوع البرنامج هنا. عند الحفظ سيظهر البرنامج تلقائيًا داخل مجموعة برامج ذلك الأسبوع.</p><div class="actions"><button onclick="saveProgram(${id||0})">حفظ</button>${id?`<button class="outline" onclick="deleteProgram(${id})">حذف</button>`:""}</div>`;modal.hidden=false}
@@ -1135,13 +1139,13 @@ function syncSemester(value){if(value){semesterSelect.value=String(value);refres
 function openStatusPrograms(status){
  const list=status==="all"?sortProgramsForDisplay(programs):sortProgramsForDisplay(programs.filter(x=>x.status===status));
  const title=status==="all"?"جميع البرامج":status;
- const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.name||"")}</b></td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td></tr>`).join("");
+ const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td><button class="outline" style="border:0;padding:3px 0;color:#2563eb;font-weight:700;cursor:pointer" onclick="openProgram(${x.id})">${esc(x.name||"")}</button></td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td></tr>`).join("");
  modalBody.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><h2 style="margin:0">قائمة البرامج — ${esc(title)}</h2><span class="pill">${list.length} برنامج</span></div><div style="max-height:60vh;overflow:auto"><table><thead><tr><th>#</th><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;padding:25px">لا توجد برامج ضمن هذه البطاقة.</td></tr>'}</tbody></table></div>`;
  modal.hidden=false;
 }
 function openNoEvidencePrograms(){
  const list=sortProgramsForDisplay(programs.filter(x=>x.status==="تم التنفيذ"&&!(Number(x.evidence?.[0]?.count)||0)));
- const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.name||"")}</b></td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td><td>لا يوجد</td></tr>`).join("");
+ const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td><button class="outline" style="border:0;padding:3px 0;color:#2563eb;font-weight:700;cursor:pointer" onclick="openProgram(${x.id})">${esc(x.name||"")}</button></td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td><td>لا يوجد</td></tr>`).join("");
  modalBody.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><h2 style="margin:0">البرامج بلا شواهد محفوظة</h2><span class="pill">${list.length} برنامج</span></div><div style="max-height:60vh;overflow:auto"><table><thead><tr><th>#</th><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;padding:25px">جميع البرامج لديها شواهد محفوظة.</td></tr>'}</tbody></table></div>`;
  modal.hidden=false;
 }
