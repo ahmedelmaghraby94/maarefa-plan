@@ -258,7 +258,12 @@ async function loadUser(authUser){
  loadingAuthUserId=authUser.id;
  try{
  const {data,error}=await sb.from("profiles").select("*").eq("id",authUser.id).single();
- if(error||!data){console.error("Profile lookup failed",error);activeAuthUserId=null;await sb.auth.signOut();showLogin();return}
+ if(error||!data){
+   console.error("Profile lookup failed",error);
+   activeAuthUserId=null;
+   if(error?.code==="PGRST116") throw new Error("تم التحقق من كلمة المرور، لكن حسابك غير مسجل في ملفات المنصة.");
+   throw new Error("تم تسجيل الدخول لكن تعذر قراءة ملف الحساب من قاعدة البيانات: "+(error?.message||"خطأ غير معروف"));
+ }
  me={...data,role:String(data.role||"").trim().toLowerCase()};activeAuthUserId=authUser.id;showApp();applyCoordinatorUI();
  document.getElementById("roleBadge").textContent="منسق الخطة — أحمد المغربي   |   مدير المدرسة — أ- وديع بخاري";
  document.getElementById("userName").textContent=me.name||me.email||"المستخدم";
@@ -280,24 +285,15 @@ async function signIn(){
    if(msg)msg.textContent="أدخل البريد الإلكتروني وكلمة المرور.";
    return;
  }
- if(!sb){
-   if(msg)msg.textContent="جارٍ تهيئة خدمة الدخول...";
-   try{ await initSupabase(); }catch(e){
-     console.error("Supabase init from signIn failed",e);
-     if(msg)msg.textContent="تعذر تهيئة خدمة الدخول. حاول الضغط على دخول مرة أخرى.";
-     return;
-   }
- }
  const btn=document.querySelector(".login-btn");
- if(btn){btn.disabled=true;btn.textContent="جارٍ الدخول...";}
+ if(btn){btn.disabled=true;btn.textContent="جارٍ التحقق...";}
  try{
+   if(!sb) await initSupabase();
    const {data,error}=await sb.auth.signInWithPassword({email:emailValue,password:passwordValue});
    if(error)throw error;
-   if(data?.session?.user){
-     await loadUser(data.session.user);
-   }else{
-     throw new Error("تم تسجيل الدخول دون إنشاء جلسة. حاول مرة أخرى.");
-   }
+   if(!data?.session?.user)throw new Error("لم يتم إنشاء جلسة دخول.");
+   if(msg)msg.textContent="تم التحقق، جارٍ فتح المنصة...";
+   await loadUser(data.session.user);
  }catch(error){
    console.error("signIn error",error);
    if(msg)msg.textContent=error?.message||"تعذر تسجيل الدخول.";
