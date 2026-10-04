@@ -114,7 +114,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 </section>
 
 <section id="programs" class="page" hidden>
- <div class="hero"><div><h2>إدارة البرامج</h2><p>إضافة وتعديل وحذف البرامج ورفع الشواهد لكل برنامج.</p><div id="ctx-programs" class="semester-context"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap">${me&&me.role==="coordinator"?`<button onclick="openProgram()">+ برنامج جديد</button>`:""}<button class="outline" onclick="printAllEvidence()">🖨️ طباعة الشواهد مجمعة</button></div></div>
+ <div class="hero"><div><h2>إدارة البرامج</h2><p>إضافة وتعديل وحذف البرامج ورفع الشواهد لكل برنامج.</p><div id="ctx-programs" class="semester-context"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap">${me&&String(me.role||"").trim().toLowerCase()==="coordinator"?`<button onclick="openProgram()">+ برنامج جديد</button>`:""}<button class="outline" onclick="printAllEvidence()">🖨️ طباعة الشواهد مجمعة</button></div></div>
  <div class="filters"><input id="q" oninput="renderPrograms()" placeholder="بحث بالبرنامج أو المنفذ أو موعد التنفيذ..."><select id="sf" onchange="renderPrograms()"><option value="">كل الحالات</option><option>تم التنفيذ</option><option>قيد التنفيذ</option><option>متأخر</option><option>لم ينفذ</option></select></div>
  <div class="card table"><table><thead><tr><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ الدقيق</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th><th></th></tr></thead><tbody id="programRows"></tbody></table></div>
 </section>
@@ -240,10 +240,10 @@ async function loadUser(authUser){
  try{
  const {data,error}=await sb.from("profiles").select("*").eq("id",authUser.id).single();
  if(error||!data){console.error("Profile lookup failed",error);activeAuthUserId=null;await sb.auth.signOut();showLogin();return}
- me=data;activeAuthUserId=authUser.id;showApp();
+ me={...data,role:String(data.role||"").trim().toLowerCase()};activeAuthUserId=authUser.id;showApp();
  document.getElementById("roleBadge").textContent="منسق الخطة — أحمد المغربي   |   مدير المدرسة — أ- وديع بخاري";
  document.getElementById("userName").textContent=me.name||me.email||"المستخدم";
- document.querySelectorAll(".coordinator-only").forEach(x=>x.style.display=me.role==="coordinator"?"block":"none");
+ document.querySelectorAll(".coordinator-only").forEach(x=>x.style.display=String(me.role||"").trim().toLowerCase()==="coordinator"?"block":"none");
  try{ await refresh(); clearAppMessage(); }catch(err){ console.error("refresh failed",err); showAppMessage("تعذر تحميل بيانات الخطة: "+(err?.message||String(err))+". البيانات محفوظة في قاعدة البيانات، ولم يتم حذفها."); }
  const defaultPage=me.role==="coordinator"?"dashboard":"school";
  document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==defaultPage);
@@ -784,7 +784,7 @@ function openEvidencePrintWindow(rows,title){
 
 function openProgram(id){
  let x=programs.find(a=>a.id===id)||{name:"",week_no:0,execution_timing:"غير محدد",execution_date:"",owner:"",status:"لم ينفذ",progress:0};
- if(id && (!window.me || me.role!=="coordinator")){
+ if(id && (!window.me || String(me.role||"").trim().toLowerCase()!=="coordinator")){
    modalBody.innerHTML=`<h2 style="margin-top:0">${esc(x.name||"البرنامج")}</h2><div class="card" style="margin:12px 0"><p><b>موعد التنفيذ:</b> ${esc(timingLabel(x)||"-")}</p><p><b>التاريخ:</b> ${esc(x.execution_date||"—")}</p><p><b>المنفذ:</b> ${esc(x.owner||"-")}</p><p><b>الحالة:</b> ${badge(x.status)}</p><p><b>نسبة الإنجاز:</b> ${progressValue(x)}%</p><p><b>عدد الشواهد المحفوظة:</b> ${Number(x.evidence?.[0]?.count)||0}</p></div><div class="actions"><button class="outline" onclick="closeModal()">إغلاق</button></div>`;
    modal.hidden=false; return;
  }
