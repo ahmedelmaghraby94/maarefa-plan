@@ -1230,13 +1230,15 @@ function syncSemester(value){if(value){semesterSelect.value=String(value);refres
 function openStatusPrograms(status){
  const list=status==="all"?sortProgramsForDisplay(programs):sortProgramsForDisplay(programs.filter(x=>x.status===status));
  const title=status==="all"?"جميع البرامج":status;
- const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td><button class="outline" style="border:0;padding:3px 0;color:#2563eb;font-weight:700;cursor:pointer" onclick="openProgramFromCard(${x.id})">${esc(x.name||"")}</button></td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td></tr>`).join("");
+ const canEditFromCard=String(me?.role||"").trim().toLowerCase()==="coordinator";
+ const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td>${canEditFromCard?`<button class="outline" style="border:0;padding:3px 0;color:#2563eb;font-weight:700;cursor:pointer" onclick="openProgramFromCard(${x.id})">${esc(x.name||"")}</button>`:esc(x.name||"")}</td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td></tr>`).join("");
  modalBody.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><h2 style="margin:0">قائمة البرامج — ${esc(title)}</h2><span class="pill">${list.length} برنامج</span></div><div style="max-height:60vh;overflow:auto"><table><thead><tr><th>#</th><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;padding:25px">لا توجد برامج ضمن هذه البطاقة.</td></tr>'}</tbody></table></div>`;
  modal.hidden=false;
 }
 function openNoEvidencePrograms(){
  const list=sortProgramsForDisplay(programs.filter(x=>x.status==="تم التنفيذ"&&!(Number(x.evidence?.[0]?.count)||0)));
- const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td><button class="outline" style="border:0;padding:3px 0;color:#2563eb;font-weight:700;cursor:pointer" onclick="openProgramFromCard(${x.id})">${esc(x.name||"")}</button></td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td><td>لا يوجد</td></tr>`).join("");
+ const canEditFromCard=String(me?.role||"").trim().toLowerCase()==="coordinator";
+ const rows=list.map((x,i)=>`<tr><td>${i+1}</td><td>${canEditFromCard?`<button class="outline" style="border:0;padding:3px 0;color:#2563eb;font-weight:700;cursor:pointer" onclick="openProgramFromCard(${x.id})">${esc(x.name||"")}</button>`:esc(x.name||"")}</td><td>${esc(timingLabel(x)||"-")}</td><td>${esc(x.execution_date||"—")}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td>${progressValue(x)}%</td><td>لا يوجد</td></tr>`).join("");
  modalBody.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><h2 style="margin:0">البرامج بلا شواهد محفوظة</h2><span class="pill">${list.length} برنامج</span></div><div style="max-height:60vh;overflow:auto"><table><thead><tr><th>#</th><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;padding:25px">جميع البرامج لديها شواهد محفوظة.</td></tr>'}</tbody></table></div>`;
  modal.hidden=false;
 }
