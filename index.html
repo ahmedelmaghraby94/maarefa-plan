@@ -1015,7 +1015,26 @@ async function deleteEvidence(evidenceId,path,programId){
    alert(e?.message||"تعذر حذف الشاهد.");
  }
 }
-async function openEvidence(path){const s=await sb.storage.from("evidence").createSignedUrl(path,3600);if(s.error||!s.data?.signedUrl){alert(s.error?.message||"تعذر فتح الشاهد");return}window.open(s.data.signedUrl,"_blank")}
+async function openEvidence(path){
+ if(!path){alert("تعذر تحديد ملف الشاهد.");return}
+ // فتح النافذة مباشرة من نقرة المستخدم يمنع حظر النوافذ المنبثقة في بعض متصفحات الجوال.
+ const w=window.open("about:blank","_blank");
+ if(!w){alert("يرجى السماح بالنوافذ المنبثقة للموقع حتى يمكن فتح الشاهد.");return}
+ try{
+   w.document.title="جارٍ فتح الشاهد...";
+   w.document.body.innerHTML='<div style="font-family:Tahoma,Arial,sans-serif;text-align:center;padding:40px">جارٍ فتح الشاهد...</div>';
+   const s=await sb.storage.from("evidence").createSignedUrl(path,3600);
+   if(s.error||!s.data?.signedUrl){
+     try{w.close()}catch(_){}
+     alert(s.error?.message||"تعذر فتح الشاهد");
+     return;
+   }
+   w.location.href=s.data.signedUrl;
+ }catch(e){
+   try{w.close()}catch(_){}
+   alert(e?.message||"تعذر فتح الشاهد");
+ }
+}
 async function uploadEvidenceFile(path,file,onProgress,accessToken){
   // رفع مباشر عبر خدمة الرفع داخل Supabase مع ترويسات CORS مسموحة على Android.
   const endpoint="/api/upload-evidence?path="+encodeURIComponent(path);
