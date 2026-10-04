@@ -202,8 +202,14 @@ function loadScript(src,timeout=7000){
 }
 async function initSupabase(){
  if(!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY)throw new Error("إعدادات Supabase غير موجودة");
- if(!window.supabase?.createClient) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js",8000);
- if(!window.supabase?.createClient)throw new Error("لم يتم تحميل مكتبة Supabase");
+ if(!window.supabase?.createClient){
+   try{
+     await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js",5000);
+   }catch(e){
+     await loadScript("https://unpkg.com/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js",5000);
+   }
+ }
+ if(!window.supabase?.createClient)throw new Error("لم يتم تحميل مكتبة الدخول");
  sb=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);
 }
 let me=null, semesters=[], programs=[], users=[], donutChart=null, barChart=null, schoolDonutChart=null, schoolBarChart=null;
@@ -217,7 +223,7 @@ async function boot(){
    await initSupabase();
    const result=await Promise.race([
      sb.auth.getSession(),
-     new Promise((_,reject)=>setTimeout(()=>reject(new Error("انتهت مهلة الاتصال بخدمة الدخول")),10000))
+     new Promise((_,reject)=>setTimeout(()=>reject(new Error("انتهت مهلة الاتصال بخدمة الدخول")),7000))
    ]);
    const session=result?.data?.session;
    if(session) await loadUser(session.user);
@@ -225,6 +231,8 @@ async function boot(){
  }catch(e){
    console.error("Auth initialization error",e);
    showLogin();
+   const m=document.getElementById("loginMsg");
+   if(m)m.textContent="تعذر الاتصال بخدمة الدخول. يمكنك المحاولة الآن أو إعادة تحميل الصفحة.";
  }
 }
 function showLogin(){
