@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>منصة متابعة الخطة التشغيلية</title>
-<meta name="theme-color" content="#173b70"><meta name="deployment-version" content="2026-10-04-coordinator-edit"></head>
+<meta name="theme-color" content="#173b70"><meta name="deployment-version" content="2026-10-04-coordinator-edit-v2"></head>
 <body>
 <div id="loading">جارٍ التحميل...</div>
 <script>
@@ -660,6 +660,7 @@ function sortProgramsForDisplay(list){
    return (Number(a.plan_order)||999999)-(Number(b.plan_order)||999999);
  });
 }
+function isCoordinator(){return !!me&&String(me.role||"").trim().toLowerCase()==="coordinator"}
 function renderPrograms(){
  let q=(document.getElementById("q")?.value||"").toLowerCase(),sf=document.getElementById("sf")?.value||"";
  let a=programs.filter(x=>(x.name+" "+(x.owner||"")+" "+timingLabel(x)).toLowerCase().includes(q)&&(!sf||x.status===sf));
@@ -669,7 +670,7 @@ function renderPrograms(){
  const keys=Object.keys(groups).sort((a,b)=>{const rank=k=>k==="before"?0:k==="continuous"?2:k==="appointment"?3:1;const ra=rank(a),rb=rank(b);if(ra!==rb)return ra-rb;if(ra===1)return Number(a.split("_")[1])-Number(b.split("_")[1]);return 0});
  programRows.innerHTML=keys.map(k=>{
    const rows=groups[k],title=k==="before"?"برامج ما قبل الدراسة":k==="continuous"?"البرامج المستمرة":k==="appointment"?"البرامج حسب الموعد":`الأسبوع ${weekNames[Number(k.split("_")[1])]||k.split("_")[1]}`;
-   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">${me&&me.role==="coordinator"?`<button onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button>`:""}<button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button>${me&&me.role==="coordinator"?`<button class="outline" onclick="openProgram(${x.id})">تحرير</button>`:""}</div></td></tr>`).join("");
+   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">${isCoordinator()?`<button onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button>`:""}<button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button>${isCoordinator()?`<button class="outline" onclick="openProgram(${x.id})">تحرير</button>`:""}</div></td></tr>`).join("");
    return `<tr><td colspan="8" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${rows.length} برنامج</td></tr>${trs}`;
  }).join("")||"<tr><td colspan='8'>لا توجد برامج مطابقة.</td></tr>";
 }
