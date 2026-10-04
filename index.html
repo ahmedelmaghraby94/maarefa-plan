@@ -218,21 +218,25 @@ let activeAuthUserId=null, loadingAuthUserId=null;
 async function boot(){
  showLogin();
  console.log("Operational plan app boot started");
- if(!window.SUPABASE_URL||window.SUPABASE_URL.includes("YOUR-")){document.getElementById("loginMsg").textContent="إعدادات الدخول غير مكتملة.";return}
+ // لا ننتظر خدمة الدخول عند فتح الصفحة؛ صفحة الدخول يجب أن تظهر فورًا.
+ if(!window.SUPABASE_URL||window.SUPABASE_URL.includes("YOUR-")){
+   const m=document.getElementById("loginMsg");
+   if(m)m.textContent="إعدادات الدخول غير مكتملة.";
+   return;
+ }
+ // تهيئة الجلسة في الخلفية فقط، دون تعطيل زر الدخول.
  try{
    await initSupabase();
    const result=await Promise.race([
      sb.auth.getSession(),
-     new Promise((_,reject)=>setTimeout(()=>reject(new Error("انتهت مهلة الاتصال بخدمة الدخول")),7000))
+     new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),5000))
    ]);
    const session=result?.data?.session;
    if(session) await loadUser(session.user);
-   sb.auth.onAuthStateChange(async(_e,s)=>{try{if(s) await loadUser(s.user); else showLogin()}catch(err){showFatal(err.message||String(err))}});
+   sb.auth.onAuthStateChange(async(_e,s)=>{try{if(s) await loadUser(s.user); else showLogin()}catch(err){console.error("auth state error",err)}});
  }catch(e){
-   console.error("Auth initialization error",e);
-   showLogin();
-   const m=document.getElementById("loginMsg");
-   if(m)m.textContent="تعذر الاتصال بخدمة الدخول. يمكنك المحاولة الآن أو إعادة تحميل الصفحة.";
+   console.warn("Auth background initialization:",e);
+   // signIn سيحاول تهيئة الخدمة عند الضغط على زر الدخول.
  }
 }
 function showLogin(){
@@ -277,8 +281,12 @@ async function signIn(){
    return;
  }
  if(!sb){
-   if(msg)msg.textContent="تعذر الاتصال بخدمة الدخول. أعد تحميل الصفحة.";
-   return;
+   if(msg)msg.textContent="جارٍ تهيئة خدمة الدخول...";
+   try{ await initSupabase(); }catch(e){
+     console.error("Supabase init from signIn failed",e);
+     if(msg)msg.textContent="تعذر تهيئة خدمة الدخول. حاول الضغط على دخول مرة أخرى.";
+     return;
+   }
  }
  const btn=document.querySelector(".login-btn");
  if(btn){btn.disabled=true;btn.textContent="جارٍ الدخول...";}
