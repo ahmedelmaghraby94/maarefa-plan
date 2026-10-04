@@ -641,13 +641,21 @@ function weekNumber(w){
 }
 
 function renderDashboard(){
- const n=programs.length, d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=n-d-doing-late,noEv=programs.filter(x=>x.status==="تم التنفيذ"&&!(Number(x.evidence?.[0]?.count)||0)).length;
- document.getElementById("total").textContent=n;done.textContent=d;document.getElementById("doing").textContent=doing;notdone.textContent=nd;document.getElementById("late").textContent=late;document.getElementById("noEvidence").textContent=noEv;avg.textContent=(n?Math.round(programs.reduce((a,x)=>a+(progressValue(x)),0)/n):0)+"%";
- const groups=timingGroups(), labels=groups.map(g=>g.label), vals=groups.map(g=>g.avg);
- if(!window.Chart){console.warn("Chart.js غير متاح"); return;} if(donutChart)donutChart.destroy();donutChart=new Chart(document.getElementById("donut"),{type:"doughnut",data:{labels:["تم التنفيذ","قيد التنفيذ","متأخر","لم ينفذ"],datasets:[{data:[d,doing,late,nd],borderWidth:4,hoverOffset:7,spacing:3,backgroundColor:['#16a34a','#f59e0b','#ef4444','#94a3b8'],borderColor:'#ffffff'}]},options:{plugins:{legend:{position:"bottom"}}}});
- if(barChart)barChart.destroy();barChart=new Chart(document.getElementById("bars"),{type:"bar",data:{labels,datasets:[{label:"متوسط الإنجاز %",data:vals}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{stepSize:20}},x:{grid:{display:false}}}}});
- latest.innerHTML=programs.slice(0,8).map(x=>`<div class="evidence-row"><span><b>${x.name}</b> — ${timingLabel(x)} — ${x.owner||""}</span>${badge(x.status)} <span>${progressValue(x)}%</span></div>`).join("")||"<p>لا توجد برامج.</p>";
- const groups2=groups, labels2=labels, vals2=vals;
+ const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=n-d-doing-late,noEv=programs.filter(x=>x.status==="تم التنفيذ"&&!(Number(x.evidence?.[0]?.count)||0)).length;
+ document.getElementById("total").textContent=n;done.textContent=d;document.getElementById("doing").textContent=doing;notdone.textContent=nd;document.getElementById("late").textContent=late;document.getElementById("noEvidence").textContent=noEv;avg.textContent=(n?Math.round(programs.reduce((s,x)=>s+progressValue(x),0)/n):0)+"%";
+ latest.innerHTML=programs.slice(0,8).map(x=>`<div class="evidence-row"><span><b>${esc(x.name)}</b> — ${esc(timingLabel(x))} — ${esc(x.owner||"")}</span>${badge(x.status)} <span>${progressValue(x)}%</span></div>`).join("")||"<p>لا توجد برامج.</p>";
+ const groups=timingGroups(),labels=groups.map(g=>g.label),vals=groups.map(g=>g.avg);
+ if(!window.Chart){
+   if(!window.__chartLoading){
+     window.__chartLoading=true;
+     loadScript("https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js",8000).then(()=>{window.__chartLoading=false;renderDashboard()}).catch(e=>{window.__chartLoading=false;console.warn("تعذر تحميل الرسوم البيانية",e)});
+   }
+   return;
+ }
+ if(donutChart)donutChart.destroy();
+ donutChart=new Chart(document.getElementById("donut"),{type:"doughnut",data:{labels:["تم التنفيذ","قيد التنفيذ","متأخر","لم ينفذ"],datasets:[{data:[d,doing,late,nd],borderWidth:4,hoverOffset:7,spacing:3,backgroundColor:["#16a34a","#f59e0b","#ef4444","#94a3b8"],borderColor:"#ffffff"}]},options:{plugins:{legend:{position:"bottom"}}}});
+ if(barChart)barChart.destroy();
+ barChart=new Chart(document.getElementById("bars"),{type:"bar",data:{labels,datasets:[{label:"متوسط الإنجاز %",data:vals}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{stepSize:20}},x:{grid:{display:false}}}}});
 }
 function programDisplayGroup(p){
  const t=String(p.execution_timing||"").trim().toLowerCase();
