@@ -114,7 +114,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 </section>
 
 <section id="programs" class="page" hidden>
- <div class="hero"><div><h2>إدارة البرامج</h2><p>إضافة وتعديل وحذف البرامج ورفع الشواهد لكل برنامج.</p><div id="ctx-programs" class="semester-context"></div></div><div id="programActions" style="display:flex;gap:8px;flex-wrap:wrap"><button id="newProgramBtn" class="coordinator-action" onclick="openProgramEditor()">+ برنامج جديد</button><button class="outline" onclick="printAllEvidence()">🖨️ طباعة الشواهد مجمعة</button></div></div>
+ <div class="hero"><div><h2>إدارة البرامج</h2><p>إضافة وتعديل وحذف البرامج ورفع الشواهد لكل برنامج.</p><div id="ctx-programs" class="semester-context"></div></div><div id="programActions" style="display:flex;gap:8px;flex-wrap:wrap"><button id="newProgramBtn" class="coordinator-action" onclick="openProgram()">+ برنامج جديد</button><button class="outline" onclick="printAllEvidence()">🖨️ طباعة الشواهد مجمعة</button></div></div>
  <div class="filters"><input id="q" oninput="renderPrograms()" placeholder="بحث بالبرنامج أو المنفذ أو موعد التنفيذ..."><select id="sf" onchange="renderPrograms()"><option value="">كل الحالات</option><option>تم التنفيذ</option><option>قيد التنفيذ</option><option>متأخر</option><option>لم ينفذ</option></select></div>
  <div class="card table"><table><thead><tr><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ الدقيق</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th><th></th></tr></thead><tbody id="programRows"></tbody></table></div>
 </section>
@@ -694,7 +694,7 @@ function renderPrograms(){
  const keys=Object.keys(groups).sort((a,b)=>{const rank=k=>k==="before"?0:k==="continuous"?2:k==="appointment"?3:1;const ra=rank(a),rb=rank(b);if(ra!==rb)return ra-rb;if(ra===1)return Number(a.split("_")[1])-Number(b.split("_")[1]);return 0});
  programRows.innerHTML=keys.map(k=>{
    const rows=groups[k],title=k==="before"?"برامج ما قبل الدراسة":k==="continuous"?"البرامج المستمرة":k==="appointment"?"البرامج حسب الموعد":`الأسبوع ${weekNames[Number(k.split("_")[1])]||k.split("_")[1]}`;
-   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="coordinator-action" onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline coordinator-action" onclick="openProgramEditor(${x.id})">تحرير</button></div></td></tr>`).join("");
+   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="coordinator-action" onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline coordinator-action" onclick="openProgram(${x.id})">تحرير</button></div></td></tr>`).join("");
    return `<tr><td colspan="8" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${rows.length} برنامج</td></tr>${trs}`;
  }).join("")||"<tr><td colspan='8'>لا توجد برامج مطابقة.</td></tr>";
 }
@@ -807,7 +807,7 @@ function openEvidencePrintWindow(rows,title){
  setTimeout(()=>{try{if(!w.closed){w.focus();w.print()}}catch(e){}},5000);
 }
 
-function openProgramEditor(id){
+function openProgram(id){
  let x=programs.find(a=>a.id===id)||{name:"",week_no:0,execution_timing:"غير محدد",execution_date:"",owner:"",status:"لم ينفذ",progress:0};
  const role=String(window.me?.role||"").trim().toLowerCase();
  if(id && role!=="coordinator"){
