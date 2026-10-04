@@ -477,6 +477,10 @@ async function exportSemesterArchive(){
  const btn=[...document.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('تصدير ملف الفصل PDF'));
  const original=btn?.innerHTML||"📄 تصدير ملف الفصل PDF";
  const setBusy=(msg)=>{if(btn){btn.disabled=true;btn.innerHTML="⏳ "+msg}};
+ // فتح النافذة مباشرة عند الضغط يمنع المتصفح من حجبها بعد العمليات غير المتزامنة.
+ const w=window.open("","_blank");
+ if(!w){alert("يرجى السماح بالنوافذ المنبثقة من الموقع حتى يتم إنشاء ملف PDF.");return}
+ w.document.open();w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تجهيز ملف الفصل</title></head><body style="font-family:Tahoma,Arial,sans-serif;text-align:center;padding:40px"><h2>جارٍ تجهيز ملف الفصل...</h2><p>يتم جمع التقرير النهائي ثم بيانات البرامج ثم الشواهد مرتبة.</p></body></html>');w.document.close();
  try{
   const semester=currentSemester();
   if(!semester)throw new Error("لا يوجد فصل دراسي محدد للتصدير.");
@@ -484,27 +488,29 @@ async function exportSemesterArchive(){
   setBusy("جاري جمع الشواهد...");
   const rows=await getProgramEvidenceRows(programs.map(x=>x.id));
   setBusy("جاري تجهيز ملف PDF...");
-  openSemesterPdfWindow(semester,rows);
+  openSemesterPdfWindow(semester,rows,w);
  }catch(err){
   console.error("exportSemesterArchive",err);
+  try{w.document.open();w.document.write('<!doctype html><html lang="ar" dir="rtl"><body style="font-family:Tahoma,Arial,sans-serif;text-align:center;padding:40px"><h2 style="color:#b91c1c">تعذر تجهيز ملف الفصل</h2><p>'+escHtml(err?.message||"خطأ غير معروف")+'</p></body></html>');w.document.close()}catch(_){}
   alert(err?.message||"تعذر تصدير ملف الفصل بصيغة PDF.");
  }finally{
   if(btn){btn.disabled=false;btn.innerHTML=original}
  }
 }
-function openSemesterPdfWindow(semester,rows){
- const w=window.open("","_blank");
+function openSemesterPdfWindow(semester,rows,existingWindow){
+ const w=existingWindow||window.open("","_blank");
  if(!w){alert("يرجى السماح بالنوافذ المنبثقة للموقع حتى يتم إنشاء ملف PDF.");return}
  const ordered=[...rows].sort((a,b)=>{
    const pa=Number(a.p?.plan_order||0),pb=Number(b.p?.plan_order||0);
    if(pa!==pb)return pa-pb;
    return new Date(a.e?.created_at||0).getTime()-new Date(b.e?.created_at||0).getTime();
  });
- const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=programs.filter(x=>x.status==="لم ينفذ").length,avg=n?Math.round(programs.reduce((s,x)=>s+progressValue(x),0)/n):0;
+ const exportPrograms=sortProgramsForDisplay(programs);
+ const n=exportPrograms.length,d=exportPrograms.filter(x=>x.status==="تم التنفيذ").length,doing=exportPrograms.filter(x=>x.status==="قيد التنفيذ").length,late=exportPrograms.filter(x=>x.status==="متأخر").length,nd=n-d-doing-late,avg=n?Math.round(exportPrograms.reduce((s,x)=>s+progressValue(x),0)/n):0;
  const total=Math.max(1,n),pDone=Math.round(d/total*100),pDoing=Math.round(doing/total*100),pLate=Math.round(late/total*100);
  const donut="conic-gradient(#16a34a 0 "+pDone+"%,#f59e0b "+pDone+"% "+(pDone+pDoing)+"%,#ef4444 "+(pDone+pDoing)+"% "+(pDone+pDoing+pLate)+"%,#94a3b8 "+(pDone+pDoing+pLate)+"% 100%)";
  const groups=timingGroups();
- const programRows=programs.map((p,i)=>{
+ const programRows=exportPrograms.map((p,i)=>{
    const ev=ordered.filter(x=>Number(x.p?.id)===Number(p.id)).length;
    return '<tr><td>'+(i+1)+'</td><td class="program-name">'+escHtml(p.name||"")+'</td><td>'+escHtml(timingLabel(p)||"")+'</td><td>'+escHtml(p.execution_date||"-")+'</td><td>'+escHtml(p.owner||"-")+'</td><td>'+escHtml(p.status||"")+'</td><td>'+progressValue(p)+'%</td><td>'+ev+'</td></tr>';
  }).join("");
