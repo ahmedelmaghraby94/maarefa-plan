@@ -947,7 +947,7 @@ async function renderEvidence(){
    return `<div class="evidence-group"><div class="evidence-group-title">📅 ${title} — ${rows.length} برنامج</div>${cards}</div>`;
  }).join("");
 }
-async async function deleteEvidence(evidenceId,path,programId){
+async function deleteEvidence(evidenceId,path,programId){
  if(!me || me.role!=="coordinator"){alert("حذف الشواهد متاح لمنسق الخطة فقط.");return}
  const row=await sb.from("evidence").select("id,file_name,file_path").eq("id",Number(evidenceId)).maybeSingle();
  if(row.error){alert("تعذر قراءة الشاهد: "+row.error.message);return}
