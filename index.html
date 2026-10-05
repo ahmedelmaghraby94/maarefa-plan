@@ -108,6 +108,13 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
   .modal{padding:8px!important;align-items:flex-start!important;}
   .modal-card{max-height:calc(100vh - 16px)!important;overflow-y:auto!important;}
 }
+
+/* تمكين التمرير الكامل داخل نافذة تحرير البرنامج على اللابتوب والجوال */
+.modal{place-items:start center!important;overflow-y:auto!important;overflow-x:hidden!important;padding:24px 12px!important;-webkit-overflow-scrolling:touch!important}
+.modal-card{max-height:calc(100vh - 48px)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important}
+.modal-card .form{padding-bottom:2px}
+.modal-card .actions{position:sticky!important;bottom:-1px!important;z-index:3;background:#fff!important;padding:12px 0 2px!important;border-top:1px solid #e5e9f0!important}
+@media(max-width:700px){.modal{padding:10px 6px!important}.modal-card{max-height:calc(100vh - 20px)!important;width:calc(100vw - 12px)!important}}
 </style>
 <div id="login" class="center">
   <div class="login-wrap">
