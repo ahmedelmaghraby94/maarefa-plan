@@ -76,6 +76,13 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 @media(max-width:1100px){.stats .stat{flex:0 0 132px}.stats{grid-template-columns:none!important}}
 @media(max-width:700px){.stats .stat{flex-basis:125px}.stats .stat span{font-size:12px!important}.stats .stat b{font-size:22px!important}}
 
+/* تكبير قائمة البرامج المنسدلة لإظهار المعلومات مباشرة */
+.modal-card{width:min(1100px,96vw)!important;max-height:92vh!important;padding:28px!important}
+.modal-card>div[style*="max-height"]{max-height:72vh!important;overflow:auto!important}
+.modal-card table{min-width:100%!important;width:100%!important;table-layout:auto!important}
+.modal-card table th,.modal-card table td{white-space:nowrap!important}
+.modal-card table td:nth-child(2){white-space:normal!important;min-width:240px!important}
+@media(max-width:700px){.modal-card{width:calc(100vw - 12px)!important;max-height:94vh!important;padding:16px!important}.modal-card>div[style*="max-height"]{max-height:76vh!important}.modal-card table{min-width:850px!important}.modal-card table td:nth-child(2){min-width:220px!important}}
 /* تكبير ووضوح قائمة البرامج المنسدلة من بطاقات الإحصاءات */
 .modal-card table{font-size:15px!important}
 .modal-card table th{font-size:14px!important;font-weight:800!important;padding:14px 11px!important;color:#173b70!important}
