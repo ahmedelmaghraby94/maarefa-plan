@@ -76,6 +76,14 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 @media(max-width:1100px){.stats .stat{flex:0 0 132px}.stats{grid-template-columns:none!important}}
 @media(max-width:700px){.stats .stat{flex-basis:125px}.stats .stat span{font-size:12px!important}.stats .stat b{font-size:22px!important}}
 
+/* تحسين نافذة تحرير البرنامج على الشاشات الصغيرة واللابتوب: تمرير رأسي كامل */
+.modal{overflow:auto!important;padding:20px!important;align-items:center!important;justify-items:center!important}
+.modal-card{max-height:calc(100vh - 40px)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important}
+.modal-card .form{padding-bottom:4px}
+@media(max-width:700px){
+  .modal{padding:10px!important;align-items:flex-start!important}
+  .modal-card{max-height:calc(100vh - 20px)!important;width:calc(100vw - 20px)!important;overflow-y:auto!important}
+}
 /* تكبير قائمة البرامج المنسدلة لإظهار المعلومات مباشرة */
 .modal-card{width:min(1100px,96vw)!important;max-height:92vh!important;padding:28px!important}
 .modal-card>div[style*="max-height"]{max-height:72vh!important;overflow:auto!important}
