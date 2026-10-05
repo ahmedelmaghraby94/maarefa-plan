@@ -60,7 +60,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 /* تنسيق بطاقات الإحصاءات: صف واحد، حجم أصغر، وإطارات واضحة */
 .stats{display:flex!important;flex-wrap:nowrap!important;gap:10px!important;margin-bottom:18px!important;overflow-x:auto!important;padding:2px 2px 8px!important;-webkit-overflow-scrolling:touch}
 .stats .stat{flex:1 1 0;min-width:0;background:#fff;border:1.5px solid #cfd8e5!important;border-radius:12px!important;padding:11px 10px!important;box-shadow:0 3px 12px #163c6b0a!important;text-align:center}
-.stats .stat span{font-size:15px!important;font-weight:700!important;white-space:nowrap}
+.stats .stat span{font-size:15px!important;font-weight:700!important;white-space:nowrap}.stats .stat.avg{background:#dbeafe!important;border-color:#93b9ef!important;color:#173b70!important}.stats .stat.avg span,.stats .stat.avg b{color:#173b70!important}
 .stats .stat b{font-size:28px!important;font-weight:800!important;margin-top:5px!important}
 .stats .stat:nth-child(2){background:#d9f5df!important;border-color:#8fd19e!important}
 .stats .stat:nth-child(3){background:#fff3b8!important;border-color:#e5c85c!important}
@@ -433,7 +433,7 @@ function jsString(v){return "'"+String(v??"").replaceAll("\\","\\\\").replaceAll
 function renderReports(){
  printPrograms.innerHTML=programs.map(x=>`<label style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #edf0f4"><input class="ev-check" type="checkbox" value="${x.id}"> <span style="flex:1"><b>${x.name}</b> — ${timingLabel(x)}</span><span>${progressValue(x)}%</span></label>`).join("")||"<p>لا توجد برامج في الفصل.</p>";
  const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=n-d-doing-late,avg=n?Math.round(programs.reduce((a,x)=>a+(progressValue(x)),0)/n):0;
- finalPreview.innerHTML=`<div class="stats"><div class="stat"><span>إجمالي البرامج</span><b>${n}</b></div><div class="stat"><span>مكتمل</span><b>${d}</b></div><div class="stat"><span>قيد التنفيذ</span><b>${doing}</b></div><div class="stat"><span>لم ينفذ</span><b>${nd}</b></div><div class="stat"><span>متوسط الإنجاز</span><b>${avg}%</b></div></div>`;
+ finalPreview.innerHTML=`<div class="stats"><div class="stat"><span>إجمالي البرامج</span><b>${n}</b></div><div class="stat"><span>مكتمل</span><b>${d}</b></div><div class="stat"><span>قيد التنفيذ</span><b>${doing}</b></div><div class="stat"><span>لم ينفذ</span><b>${nd}</b></div><div class="stat avg"><span>متوسط الإنجاز</span><b>${avg}%</b></div></div>`;
 }
 function selectAllEvidence(v){document.querySelectorAll(".ev-check").forEach(c=>c.checked=v)}
 function selectedIds(){return [...document.querySelectorAll(".ev-check:checked")].map(x=>+x.value)}
