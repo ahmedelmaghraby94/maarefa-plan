@@ -62,14 +62,17 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 .stats .stat{flex:1 1 0;min-width:0;background:#fff;border:1.5px solid #cfd8e5!important;border-radius:12px!important;padding:11px 10px!important;box-shadow:0 3px 12px #163c6b0a!important;text-align:center}
 .stats .stat span{font-size:15px!important;font-weight:700!important;white-space:nowrap}.stats .stat.avg{background:#dbeafe!important;border-color:#93b9ef!important;color:#173b70!important}.stats .stat.avg span,.stats .stat.avg b{color:#173b70!important}
 .stats .stat b{font-size:28px!important;font-weight:800!important;margin-top:5px!important}
-.stats .stat:nth-child(2){background:#d9f5df!important;border-color:#8fd19e!important}
-.stats .stat:nth-child(3){background:#fff3b8!important;border-color:#e5c85c!important}
-.stats .stat:nth-child(4){background:#fff!important;border-color:#cfd8e5!important}
-.stats .stat:nth-child(5){background:#ffdada!important;border-color:#e8a0a0!important}
-.stats .stat:has(#late){background:#ffdada!important;border-color:#e8a0a0!important}
-.stats .stat:has(#notdone){background:#fff!important;border-color:#cfd8e5!important}
-#schoolSummary .stats .stat:nth-child(4){background:#ffdada!important;border-color:#e8a0a0!important}
-#schoolSummary .stats .stat:nth-child(5){background:#fff!important;border-color:#cfd8e5!important}
+.stats .stat:nth-child(2){background:#c9f0d6!important;border-color:#70c98f!important;color:#166534!important}
+.stats .stat:nth-child(3){background:#ffe9a3!important;border-color:#e0bd35!important;color:#854d0e!important}
+.stats .stat:nth-child(4){background:#ffd0d0!important;border-color:#e58b8b!important;color:#991b1b!important}
+.stats .stat:nth-child(5){background:#d2d9e2!important;border-color:#9eabb9!important;color:#334155!important}
+.stats .stat:nth-child(6){background:#d2d9e2!important;border-color:#9eabb9!important;color:#334155!important}
+.stats .stat.avg{background:#dbeafe!important;border-color:#93b9ef!important;color:#173b70!important}
+.stats .stat.avg span,.stats .stat.avg b{color:#173b70!important}
+.stats .stat:has(#late){background:#ffd0d0!important;border-color:#e58b8b!important;color:#991b1b!important}
+.stats .stat:has(#notdone){background:#d2d9e2!important;border-color:#9eabb9!important;color:#334155!important}
+#schoolSummary .stats .stat:nth-child(4){background:#ffd0d0!important;border-color:#e58b8b!important;color:#991b1b!important}
+#schoolSummary .stats .stat:nth-child(5){background:#d2d9e2!important;border-color:#9eabb9!important;color:#334155!important}
 @media(max-width:1100px){.stats .stat{flex:0 0 132px}.stats{grid-template-columns:none!important}}
 @media(max-width:700px){.stats .stat{flex-basis:125px}.stats .stat span{font-size:12px!important}.stats .stat b{font-size:22px!important}}
 </style>
@@ -1249,7 +1252,7 @@ async function deleteSemester(id){
 async function cloneSemester(oldId){let name=prompt("اسم الفصل الجديد؟","الفصل الدراسي القادم");if(!name)return;let ns=await sb.from("semesters").insert({name,academic_year:""}).select().single();if(ns.error)return alert(ns.error.message);let old=programs.filter(x=>x.semester_id===oldId);let rows=old.map(({id,evidence,...x})=>({...x,semester_id:ns.data.id,status:"لم ينفذ",progress:0}));if(rows.length)await sb.from("programs").insert(rows);alert("تم إنشاء الفصل ونسخ البرامج. يمكنك الآن تعديلها.");refresh()}
 function renderSchool(){
  const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=n-d-doing-late,noEv=programs.filter(x=>x.status==="تم التنفيذ"&&!(Number(x.evidence?.[0]?.count)||0)).length,avg=n?Math.round(programs.reduce((a,x)=>a+(progressValue(x)),0)/n):0;
- schoolSummary.innerHTML=`<div class="stats" style="margin-top:18px"><div class="stat clickable-stat" onclick="openStatusPrograms('all')" title="عرض جميع البرامج"><span>إجمالي البرامج</span><b>${n}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('تم التنفيذ')" title="عرض البرامج المكتملة"><span>تم التنفيذ</span><b>${d}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('قيد التنفيذ')" title="عرض البرامج قيد التنفيذ"><span>قيد التنفيذ</span><b>${doing}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('متأخر')" title="عرض البرامج المتأخرة"><span>متأخر</span><b>${late}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('لم ينفذ')" title="عرض البرامج التي لم تنفذ"><span>لم ينفذ</span><b>${nd}</b></div><div class="stat clickable-stat" onclick="openNoEvidencePrograms()" title="عرض البرامج المكتملة بلا شواهد محفوظة"><span>بلا شواهد محفوظة</span><b>${noEv}</b></div><div class="stat"><span>متوسط الإنجاز</span><b>${avg}%</b></div></div>`;
+ schoolSummary.innerHTML=`<div class="stats" style="margin-top:18px"><div class="stat clickable-stat" onclick="openStatusPrograms('all')" title="عرض جميع البرامج"><span>إجمالي البرامج</span><b>${n}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('تم التنفيذ')" title="عرض البرامج المكتملة"><span>تم التنفيذ</span><b>${d}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('قيد التنفيذ')" title="عرض البرامج قيد التنفيذ"><span>قيد التنفيذ</span><b>${doing}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('متأخر')" title="عرض البرامج المتأخرة"><span>متأخر</span><b>${late}</b></div><div class="stat clickable-stat" onclick="openStatusPrograms('لم ينفذ')" title="عرض البرامج التي لم تنفذ"><span>لم ينفذ</span><b>${nd}</b></div><div class="stat clickable-stat" onclick="openNoEvidencePrograms()" title="عرض البرامج المكتملة بلا شواهد محفوظة"><span>بلا شواهد محفوظة</span><b>${noEv}</b></div><div class="stat avg"><span>متوسط الإنجاز</span><b>${avg}%</b></div></div>`;
  schoolRows.innerHTML=programs.map(x=>`<tr><td><b>${x.name}</b></td><td>${timingLabel(x)}${x.execution_date?`<br><small>${x.execution_date}</small>`:""}</td><td>${x.owner||"-"}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td></tr>`).join("")||`<tr><td colspan="6">لا توجد برامج في الفصل الحالي.</td></tr>`;
  const groups=timingGroups(), labels=groups.map(g=>g.label), vals=groups.map(g=>g.avg);
  if(window.Chart && document.getElementById("schoolDonut")){ if(schoolDonutChart)schoolDonutChart.destroy(); schoolDonutChart=new Chart(document.getElementById("schoolDonut"),{type:"doughnut",data:{labels:["تم التنفيذ","قيد التنفيذ","متأخر","لم ينفذ"],datasets:[{data:[d,doing,late,nd],borderWidth:4,hoverOffset:7,spacing:3,backgroundColor:['#16a34a','#f59e0b','#ef4444','#94a3b8'],borderColor:'#ffffff'}]},options:{plugins:{legend:{position:"bottom"}}}}); }
