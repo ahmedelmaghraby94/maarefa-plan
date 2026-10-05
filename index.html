@@ -827,7 +827,13 @@ function openEvidencePrintWindow(rows,title){
  .file-box a{font-size:12pt;color:#111;text-decoration:none}.missing{font-size:12pt;text-align:center}
  .pdf-source{display:none}canvas.pdf-page{display:block;width:204mm;height:auto;margin:0 auto;page-break-after:always;break-after:page;max-width:190mm}
  canvas.pdf-page:last-child{page-break-after:auto;break-after:auto}@media print{html,body{width:210mm;background:#fff}.file-box a{display:none}}
- </style></head><body>${items}
+ 
+/* تمكين التمرير داخل نافذة تحرير البرنامج عند زيادة طولها */
+#modal{overflow-y:auto!important;padding:20px!important;align-items:center!important;justify-items:center!important;-webkit-overflow-scrolling:touch}
+#modal .modal-card{max-height:calc(100vh - 40px)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch}
+#modal #modalBody{min-height:0}
+@media(max-width:700px){#modal{padding:12px!important;align-items:start!important}#modal .modal-card{max-height:calc(100vh - 24px)!important;width:calc(100vw - 24px)!important}}
+</style></head><body>${items}
  <div id="print-status" style="display:none">جارٍ تجهيز الطباعة...</div>
  <script type="module">
  (async()=>{
