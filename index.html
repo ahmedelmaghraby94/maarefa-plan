@@ -154,7 +154,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 <div class="shell">
 <aside>
   <button class="nav active" data-page="dashboard">⌂ الرئيسية</button>
-  <button class="nav coordinator-only" data-page="programs">▦ البرامج</button>
+  <button class="nav" data-page="programs">▦ البرامج</button>
   <button class="nav coordinator-only" data-page="evidence">📎 الشواهد والتقارير</button>
   <button class="nav coordinator-only" data-page="users">♙ المستخدمون</button>
   <button class="nav coordinator-only" data-page="semesters">↻ فصل دراسي جديد</button>
@@ -173,7 +173,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 </section>
 
 <section id="programs" class="page" hidden>
- <div class="hero"><div><h2>إدارة البرامج</h2><p>إضافة وتعديل وحذف البرامج ورفع الشواهد لكل برنامج.</p><div id="ctx-programs" class="semester-context"></div></div><div id="programActions" style="display:flex;gap:8px;flex-wrap:wrap"><button id="newProgramBtn" class="coordinator-action" onclick="openProgram()">+ برنامج جديد</button><button class="outline" onclick="printAllEvidence()">🖨️ طباعة الشواهد مجمعة</button></div></div>
+ <div class="hero"><div><h2>البرامج</h2><p>عرض البرامج وحالات التنفيذ والتواصل مع منفذي البرامج عبر واتساب.</p><div id="ctx-programs" class="semester-context"></div></div><div id="programActions" style="display:flex;gap:8px;flex-wrap:wrap"><button id="newProgramBtn" class="coordinator-action" onclick="openProgram()">+ برنامج جديد</button><button class="outline" onclick="printAllEvidence()">🖨️ طباعة الشواهد مجمعة</button></div></div>
  <div class="filters"><input id="q" oninput="renderPrograms()" placeholder="بحث بالبرنامج أو المنفذ أو موعد التنفيذ..."><select id="sf" onchange="renderPrograms()"><option value="">كل الحالات</option><option>تم التنفيذ</option><option>قيد التنفيذ</option><option>متأخر</option><option>لم ينفذ</option></select></div>
  <div class="card table"><table><thead><tr><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ الدقيق</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th><th></th></tr></thead><tbody id="programRows"></tbody></table></div>
 </section>
