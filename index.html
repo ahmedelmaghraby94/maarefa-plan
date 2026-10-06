@@ -155,6 +155,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 <aside>
   <button class="nav active" data-page="dashboard">⌂ الرئيسية</button>
   <button class="nav" data-page="programs">▦ البرامج</button>
+  <button class="nav" data-page="contacts">📱 أرقام التواصل</button>
   <button class="nav coordinator-only" data-page="evidence">📎 الشواهد والتقارير</button>
   <button class="nav coordinator-only" data-page="users">♙ المستخدمون</button>
   <button class="nav coordinator-only" data-page="semesters">↻ فصل دراسي جديد</button>
@@ -178,7 +179,13 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
  <div class="card table"><table><thead><tr><th>البرنامج</th><th>موعد التنفيذ</th><th>التاريخ الدقيق</th><th>المنفذ</th><th>الحالة</th><th>الإنجاز</th><th>الشواهد</th><th>واتساب المنفذ</th><th></th></tr></thead><tbody id="programRows"></tbody></table></div>
 </section>
 
-<section id="evidence" class="page" hidden>
+<section id="contacts" class="page" hidden>
+ <div class="hero"><div><h2>أرقام التواصل</h2><p>قاعدة بيانات مركزية لأرقام التواصل الخاصة بمنفذي البرامج. عند تعديل الرقم هنا يظهر تلقائيًا بجوار جميع البرامج الخاصة بالمنفذ.</p><div id="ctx-contacts" class="semester-context"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="openContactEditor()">+ إضافة منفذ</button><button class="outline" onclick="loadWhatsAppDirectory(true)">↻ تحديث</button></div></div>
+ <div class="filters"><input id="contactsQ" oninput="renderWhatsAppDirectory()" placeholder="بحث باسم المنفذ..."></div>
+ <div class="card table"><table><thead><tr><th>#</th><th>المنفذ</th><th>رقم الواتساب</th><th>عدد البرامج</th><th>الإجراء</th></tr></thead><tbody id="contactsRows"></tbody></table></div>
+</section>
+
+
  <div class="hero"><div><h2>الشواهد والتقارير</h2><p>رفع الشواهد متاح لمنسق الخطة فقط.</p><div id="ctx-evidence" class="semester-context"></div></div></div>
  <div class="card">
    <div class="evidence-list-head"><b>البرامج والتقارير</b><span>ارفع الشاهد مباشرة بجانب البرنامج المطلوب</span></div>
@@ -273,6 +280,8 @@ async function initSupabase(){
 }
 let me=null, semesters=[], programs=[], users=[], donutChart=null, barChart=null, schoolDonutChart=null, schoolBarChart=null;
 let activeAuthUserId=null, loadingAuthUserId=null;
+let whatsappCentralByOwner={};
+let whatsappDirectoryRows=[];
 
 async function boot(){
  showLogin();
@@ -395,7 +404,7 @@ function updateSemesterContexts(){
  const name=s?.name||"الفصل الدراسي غير محدد";
  const year=s?.academic_year||"السنة الدراسية غير محددة";
  const html=`<span>الفصل الدراسي: ${escHtml(name)}</span><span class="year">العام الدراسي: ${escHtml(year)}</span>`;
- ["dashboard","programs","evidence","users","semesters","reports","import","school"].forEach(k=>{const el=document.getElementById("ctx-"+k);if(el)el.innerHTML=html;});
+ ["dashboard","programs","contacts","evidence","users","semesters","reports","import","school"].forEach(k=>{const el=document.getElementById("ctx-"+k);if(el)el.innerHTML=html;});
 }
 async function refresh(preferredSid=null){
  const previous=Number(preferredSid||document.getElementById("semesterSelect")?.value||0)||null;
@@ -405,7 +414,8 @@ async function refresh(preferredSid=null){
  updateSemesterContexts();
  await loadPrograms(sid);
  if(me.role==="coordinator"){await loadUsers();await renderSemesters();}
- renderDashboard();renderPrograms();fillEvidence();await renderEvidence();renderSchool();renderReports();
+ await loadWhatsAppDirectory();
+ renderDashboard();renderPrograms();renderWhatsAppDirectory();fillEvidence();await renderEvidence();renderSchool();renderReports();
 }
 async function loadSemesters(preferredSid=null){
  const r=await sb.from("semesters").select("id,name,academic_year,archived,created_at").eq("archived",false).order("created_at",{ascending:false});
@@ -455,6 +465,10 @@ async function loadPrograms(sid){
  const whatsappByProgram={};
  if(!wr.error)(wr.data||[]).forEach(x=>{whatsappByProgram[x.program_id]=x});
  programs=programs.map(x=>({...x,whatsappContact:whatsappByProgram[x.id]||null}));
+ const cr=await sb.from("whatsapp_contacts").select("id,owner_name,phone,updated_at").order("owner_name");
+ whatsappCentralByOwner={};
+ whatsappDirectoryRows=cr.error?[]:(cr.data||[]);
+ (cr.data||[]).forEach(x=>{whatsappCentralByOwner[normalizeOwnerName(x.owner_name)]={...x}});
 }
 function statusClass(s){return s==="تم التنفيذ"?"done":s==="قيد التنفيذ"?"doing":s==="متأخر"?"late":"not"}
 function badge(s){return `<span class="pill ${statusClass(s)}">${s}</span>`}
@@ -814,6 +828,8 @@ const whatsappDisplayNames={
  "محمد القرشي":"محمد القرشي","احمد جمعه":"أحمد جمعة"
 };
 function whatsappContacts(owner,program){
+ const central=whatsappCentralByOwner[normalizeOwnerName(owner||"")];
+ if(central && String(central.phone||"").trim()) return [{name:String(central.owner_name||owner||"المنفذ"),phone:String(central.phone).trim()}];
  const explicit=program?.whatsappContact;
  if(explicit){
    const phone=String(explicit.phone||"").trim();
@@ -856,6 +872,52 @@ function openProgramWhatsApp(programId,phone,name){
  const text=encodeURIComponent(whatsappMessage(p,{name,phone}));
  window.open("https://wa.me/"+intl+"?text="+text,"_blank");
 }
+async function loadWhatsAppDirectory(showMessage=false){
+ const r=await sb.from("whatsapp_contacts").select("id,owner_name,phone,updated_at").order("owner_name");
+ if(r.error){console.error("whatsapp contacts load",r.error);whatsappDirectoryRows=[];whatsappCentralByOwner={};if(showMessage)showAppMessage("تعذر تحميل قاعدة أرقام التواصل: "+r.error.message,"error");return}
+ whatsappDirectoryRows=r.data||[];whatsappCentralByOwner={};
+ whatsappDirectoryRows.forEach(x=>{whatsappCentralByOwner[normalizeOwnerName(x.owner_name)]={...x}});
+ if(showMessage)showAppMessage("تم تحديث قاعدة أرقام التواصل.","success");
+}
+function contactOwnerNames(){
+ const names=[];
+ programs.forEach(p=>{const n=String(p.owner||"").trim();if(n&&!names.some(x=>normalizeOwnerName(x)===normalizeOwnerName(n)))names.push(n)});
+ whatsappDirectoryRows.forEach(x=>{const n=String(x.owner_name||"").trim();if(n&&!names.some(v=>normalizeOwnerName(v)===normalizeOwnerName(n)))names.push(n)});
+ return names.sort((a,b)=>a.localeCompare(b,"ar"));
+}
+function renderWhatsAppDirectory(){
+ const tbody=document.getElementById("contactsRows");if(!tbody)return;
+ const q=String(document.getElementById("contactsQ")?.value||"").trim().toLowerCase();
+ const rows=contactOwnerNames().filter(n=>n.toLowerCase().includes(q)).map((owner,i)=>{
+  const rec=whatsappCentralByOwner[normalizeOwnerName(owner)],phone=String(rec?.phone||"").trim();
+  const count=programs.filter(p=>normalizeOwnerName(p.owner||"")===normalizeOwnerName(owner)).length;
+  return `<tr><td>${i+1}</td><td><b>${esc(owner)}</b></td><td dir="ltr">${phone?esc(phone):'<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>'}</td><td>${count}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="outline" onclick="openContactEditor(${rec?.id||"null"},${q(owner)},${q(phone)})">✏️ تحرير</button>${rec?'<button class="danger" onclick="deleteDirectoryContact('+Number(rec.id)+')">🗑️ حذف</button>':""}</div></td></tr>`;
+ }).join("");
+ tbody.innerHTML=rows||"<tr><td colspan=\"5\">لا توجد أسماء منفذين في الفصل الحالي.</td></tr>";
+}
+function openContactEditor(id=null,owner="",phone=""){
+ modalBody.innerHTML=`<h2>${id?"تحرير رقم التواصل":"إضافة منفذ إلى قاعدة التواصل"}</h2><p class="hint">يمكن تعديل الرقم من هنا، وسيظهر تلقائيًا بجوار جميع برامج هذا المنفذ في لوحة المنسق ومدير المدرسة.</p><div class="form"><label>اسم المنفذ</label><input id="directoryOwnerName" value="${esc(owner)}" placeholder="اسم المنفذ"><label>رقم الواتساب</label><input id="directoryPhone" dir="ltr" inputmode="tel" value="${esc(phone)}" placeholder="05xxxxxxxx"><div id="directoryMsg"></div></div><div class="actions"><button id="saveDirectoryBtn" onclick="saveDirectoryContact(${id||"null"})">حفظ</button><button class="outline" onclick="closeModal()">إلغاء</button></div>`;
+ modal.hidden=false;
+}
+async function saveDirectoryContact(id=null){
+ const name=String(document.getElementById("directoryOwnerName")?.value||"").trim();
+ const phone=String(document.getElementById("directoryPhone")?.value||"").replace(/[^0-9+]/g,"").trim();
+ const msg=document.getElementById("directoryMsg"),btn=document.getElementById("saveDirectoryBtn");
+ if(!name){if(msg)msg.innerHTML='<p class="error">أدخل اسم المنفذ.</p>';return}
+ if(phone.replace(/\D/g,"").length<9){if(msg)msg.innerHTML='<p class="error">أدخل رقم واتساب صحيحًا.</p>';return}
+ if(btn){btn.disabled=true;btn.textContent="جارٍ الحفظ..."}
+ const payload={owner_name:name,phone,updated_at:new Date().toISOString()};
+ const r=id?await sb.from("whatsapp_contacts").update(payload).eq("id",id):await sb.from("whatsapp_contacts").upsert(payload,{onConflict:"owner_name"});
+ if(r.error){if(msg)msg.innerHTML=`<p class="error">${esc(r.error.message)}</p>`;if(btn){btn.disabled=false;btn.textContent="حفظ"};return}
+ closeModal();await loadWhatsAppDirectory();renderWhatsAppDirectory();renderPrograms();showAppMessage("تم حفظ رقم التواصل وتحديثه بجوار البرامج المرتبطة بالمنفذ.","success");
+}
+async function deleteDirectoryContact(id){
+ if(!confirm("هل تريد حذف رقم التواصل من قاعدة البيانات؟ ستبقى البرامج ظاهرة، لكن لن يظهر لها رقم مركزي."))return;
+ const r=await sb.from("whatsapp_contacts").delete().eq("id",id);
+ if(r.error){alert("تعذر حذف الرقم: "+r.error.message);return}
+ await loadWhatsAppDirectory();renderWhatsAppDirectory();renderPrograms();showAppMessage("تم حذف رقم التواصل.","success");
+}
+
 function renderWhatsAppButtons(program){
  const contacts=whatsappContacts(program?.owner,program);
  const manage='<button type="button" class="outline whatsapp-manage-btn" title="تحرير رقم الواتساب" aria-label="تحرير رقم الواتساب" onclick="openWhatsAppManager('+Number(program.id)+')">✏️</button>';
