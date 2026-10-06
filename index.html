@@ -56,7 +56,7 @@ header{height:78px;padding:0 28px;background:#fff;box-shadow:0 2px 15px #123b701
 
 .evidence-list-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.evidence-list-head span{color:#667085;font-size:13px}.evidence-program{border:1px solid #dfe6f1;border-radius:14px;padding:16px;margin:12px 0;background:#fff}.evidence-program-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:12px}.evidence-program-title{font-weight:800;color:#123b70;font-size:17px}.evidence-program-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;color:#667085;font-size:13px}.evidence-upload-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.evidence-upload-line input[type=file]{max-width:360px;flex:1}.evidence-upload-line button{white-space:nowrap}.evidence-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.evidence-file{display:inline-flex;align-items:center;gap:8px;background:#f5f8fc;border:1px solid #e1e8f2;border-radius:9px;padding:7px 10px;font-size:13px}.evidence-file .danger{padding:4px 8px;font-size:12px}.evidence-msg{width:100%;font-size:13px}.evidence-program.done{border-color:#b7dfc4}
 body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{padding-top:6px;height:64px}}
- .users-password-note{font-size:12px;color:#64748b}.table td button{font-size:12px}.table td button:disabled{opacity:.5;cursor:not-allowed}.login-logo-wrap-caption,.home-logo-wrap-caption,.school-logo-wrap-caption{font-size:12px;font-weight:700;color:#2563eb;margin-top:3px;line-height:1.15;white-space:nowrap}.head-logo-wrap .logo-img{width:100px!important;height:100px!important;object-fit:contain;display:block}.head-logo-wrap-caption{font-size:12px;font-weight:700;color:#2563eb;margin-top:-25px!important;line-height:1!important;white-space:nowrap;transform:translateY(0)}.report-logo-caption{font-size:12px;font-weight:700;color:#2563eb;text-align:center;margin-top:3px;line-height:1.15}.export-report-logo{text-align:center;margin-bottom:3mm}.export-report-logo img{width:42mm;height:auto;max-height:30mm;object-fit:contain}.export-report-logo div{font-size:12px;font-weight:700;color:#2563eb;margin-top:2px}
+ .users-password-note{font-size:12px;color:#64748b}.table td button{font-size:12px}.table td button:disabled{opacity:.5;cursor:not-allowed}.whatsapp-cell{white-space:nowrap}.whatsapp-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.whatsapp-btn{background:#16a34a!important;color:#fff!important;border:1px solid #15803d!important;padding:8px 11px!important;font-size:12px!important;font-weight:800!important}.whatsapp-btn:hover{background:#15803d!important}.whatsapp-unavailable{color:#94a3b8;font-size:12px;font-weight:700}.login-logo-wrap-caption,.home-logo-wrap-caption,.school-logo-wrap-caption{font-size:12px;font-weight:700;color:#2563eb;margin-top:3px;line-height:1.15;white-space:nowrap}.head-logo-wrap .logo-img{width:100px!important;height:100px!important;object-fit:contain;display:block}.head-logo-wrap-caption{font-size:12px;font-weight:700;color:#2563eb;margin-top:-25px!important;line-height:1!important;white-space:nowrap;transform:translateY(0)}.report-logo-caption{font-size:12px;font-weight:700;color:#2563eb;text-align:center;margin-top:3px;line-height:1.15}.export-report-logo{text-align:center;margin-bottom:3mm}.export-report-logo img{width:42mm;height:auto;max-height:30mm;object-fit:contain}.export-report-logo div{font-size:12px;font-weight:700;color:#2563eb;margin-top:2px}
 /* تنسيق بطاقات الإحصاءات: صف واحد، حجم أصغر، وإطارات واضحة */
 .stats{display:flex!important;flex-wrap:nowrap!important;gap:10px!important;margin-bottom:18px!important;overflow-x:auto!important;padding:2px 2px 8px!important;-webkit-overflow-scrolling:touch}
 .stats .stat{flex:1 1 0;min-width:0;background:#fff;border:1.5px solid #cfd8e5!important;border-radius:12px!important;padding:11px 10px!important;box-shadow:0 3px 12px #163c6b0a!important;text-align:center}
@@ -767,6 +767,80 @@ function sortProgramsForDisplay(list){
 }
 function isCoordinator(){return !!me&&String(me.role||"").trim().toLowerCase()==="coordinator"}
 function applyCoordinatorUI(){const ok=isCoordinator();document.querySelectorAll(".coordinator-action").forEach(el=>el.style.display=ok?"inline-block":"none");}
+
+function normalizeOwnerName(v){
+ return String(v||"").toLowerCase()
+  .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
+  .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g,"")
+  .replace(/[^\u0621-\u064Aa-z0-9]+/g," ").trim();
+}
+const whatsappDirectory={
+ "وسيم الزهراني":"0563994429",
+ "علي الفقيه":"0530078646",
+ "شعبان امين":"0506502670",
+ "احمد ابو السعود":"0530873575",
+ "محمد القاضي":"0547453119",
+ "حسام سعدون":"0511509396",
+ "حمدي حافظ":"0501173626",
+ "راشد العتيبي":"0538276979",
+ "رايد السلمي":"0544408301",
+ "رزق رشاد":"0542583567",
+ "ريان الثقفي":"0559836074",
+ "صالح الزهراني":"0593309907",
+ "عادل الشيخ":"0506507356",
+ "عبدالعزيز العمري":"0543424544",
+ "عبدالكريم البعيد":"0501525971",
+ "عبدالكريم الجعيد":"0501525971",
+ "عبدالوهاب السلمي":"0560606106",
+ "فريد حسين":"0566629834",
+ "فهد الصاعدي":"0596736361",
+ "ابراهيم التركستاني":"0562517640",
+ "اسامة عبدالكريم":"0595925884",
+ "محمد القرشي":"0561387522",
+ "احمد جمعه":"0500928478"
+};
+const whatsappDisplayNames={
+ "وسيم الزهراني":"وسيم الزهراني","علي الفقيه":"علي الفقيه","شعبان امين":"شعبان أمين",
+ "احمد ابو السعود":"أحمد أبو السعود","محمد القاضي":"محمد القاضي","حسام سعدون":"حسام سعدون",
+ "حمدي حافظ":"حمدي حافظ","راشد العتيبي":"راشد العتيبي","رايد السلمي":"رايد السلمي",
+ "رزق رشاد":"رزق رشاد","ريان الثقفي":"ريان الثقفي","صالح الزهراني":"صالح الزهراني",
+ "عادل الشيخ":"عادل الشيخ","عبدالعزيز العمري":"عبدالعزيز العمري","عبدالكريم البعيد":"عبدالكريم الجعيد",
+ "عبدالكريم الجعيد":"عبدالكريم الجعيد","عبدالوهاب السلمي":"عبدالوهاب السلمي","فريد حسين":"فريد حسين",
+ "فهد الصاعدي":"فهد الصاعدي","ابراهيم التركستاني":"إبراهيم التركستاني","اسامة عبدالكريم":"أسامة عبدالكريم",
+ "محمد القرشي":"محمد القرشي","احمد جمعه":"أحمد جمعة"
+};
+function whatsappContacts(owner){
+ const raw=String(owner||"");
+ const normalized=normalizeOwnerName(raw);
+ const out=[];
+ if(/فريد\s+حسين/.test(normalized)) out.push({name:"فريد حسين",phone:whatsappDirectory["فريد حسين"]});
+ if(/رزق\s+رشاد/.test(normalized)) out.push({name:"رزق رشاد",phone:whatsappDirectory["رزق رشاد"]});
+ if(out.length)return out;
+ const key=Object.keys(whatsappDirectory).find(k=>normalized===normalizeOwnerName(k)||normalized.includes(normalizeOwnerName(k)));
+ return key?[{name:whatsappDisplayNames[key]||key,phone:whatsappDirectory[key]}]:[];
+}
+function whatsappMessage(program,contact){
+ const status=String(program?.status||"لم ينفذ").trim();
+ let request="";
+ if(status==="تم التنفيذ") request="نشكر لك جهودك في تنفيذ البرنامج وإنجازه، ونقدر تعاونك وجهودك.";
+ else if(status==="متأخر") request="نأمل استكمال تنفيذ البرنامج بشكل عاجل، وتحديث حالته ورفع الشاهد في المنصة.";
+ else if(status==="قيد التنفيذ") request="نأمل استكمال تنفيذ البرنامج وتحديث حالته ورفع الشاهد عند الانتهاء.";
+ else request="نأمل البدء في تنفيذ البرنامج واستكماله، ثم تحديث حالته ورفع الشاهد في المنصة.";
+ return "السلام عليكم أستاذ "+(contact?.name||program?.owner||"")+ "،\n\nبخصوص برنامج «"+String(program?.name||"")+"» في منصة متابعة الخطة التشغيلية:\nحالة البرنامج الحالية: «"+status+"».\n\n"+request+"\n\nوشكرًا لتعاونك.";
+}
+function openProgramWhatsApp(programId,phone,name){
+ const p=programs.find(x=>Number(x.id)===Number(programId)); if(!p||!phone)return;
+ const local=String(phone).replace(/\D/g,"");
+ const intl=local.startsWith("0")?"966"+local.slice(1):local;
+ const text=encodeURIComponent(whatsappMessage(p,{name,phone}));
+ window.open("https://wa.me/"+intl+"?text="+text,"_blank");
+}
+function renderWhatsAppButtons(program){
+ const contacts=whatsappContacts(program?.owner);
+ if(!contacts.length)return '<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>';
+ return '<div class="whatsapp-actions">'+contacts.map(c=>'<button type="button" class="whatsapp-btn" onclick="openProgramWhatsApp('+Number(program.id)+','+jsString(c.phone)+','+jsString(c.name)+')">🟢 واتساب'+(contacts.length>1?' '+esc(c.name):'')+'</button>').join("")+'</div>';
+}
+
 function renderPrograms(){
  let q=(document.getElementById("q")?.value||"").toLowerCase(),sf=document.getElementById("sf")?.value||"";
  let a=programs.filter(x=>(x.name+" "+(x.owner||"")+" "+timingLabel(x)).toLowerCase().includes(q)&&(!sf||x.status===sf));
@@ -776,9 +850,9 @@ function renderPrograms(){
  const keys=Object.keys(groups).sort((a,b)=>{const rank=k=>k==="before"?0:k==="continuous"?2:k==="appointment"?3:1;const ra=rank(a),rb=rank(b);if(ra!==rb)return ra-rb;if(ra===1)return Number(a.split("_")[1])-Number(b.split("_")[1]);return 0});
  programRows.innerHTML=keys.map(k=>{
    const rows=groups[k],title=k==="before"?"برامج ما قبل الدراسة":k==="continuous"?"البرامج المستمرة":k==="appointment"?"البرامج حسب الموعد":`الأسبوع ${weekNames[Number(k.split("_")[1])]||k.split("_")[1]}`;
-   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="coordinator-action" onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline coordinator-action" onclick="openProgram(${x.id})">✏️ تحرير البرنامج</button></div></td></tr>`).join("");
-   return `<tr><td colspan="8" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${rows.length} برنامج</td></tr>${trs}`;
- }).join("")||"<tr><td colspan='8'>لا توجد برامج مطابقة.</td></tr>";
+   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td class="whatsapp-cell">${renderWhatsAppButtons(x)}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="coordinator-action" onclick="uploadEvidenceFromPrograms(${x.id})">📎 رفع الشواهد</button><button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button><button class="outline coordinator-action" onclick="openProgram(${x.id})">✏️ تحرير البرنامج</button></div></td></tr>`).join("");
+   return `<tr><td colspan="9" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${rows.length} برنامج</td></tr>${trs}`;
+ }).join("")||"<tr><td colspan='9'>لا توجد برامج مطابقة.</td></tr>";
 }
 function uploadEvidenceFromPrograms(id){
  const p=programs.find(x=>x.id===id); if(!p)return;
