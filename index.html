@@ -887,11 +887,11 @@ function contactOwnerNames(){
 }
 function renderWhatsAppDirectory(){
  const tbody=document.getElementById("contactsRows");if(!tbody)return;
- const q=String(document.getElementById("contactsQ")?.value||"").trim().toLowerCase();
- const rows=contactOwnerNames().filter(n=>n.toLowerCase().includes(q)).map((owner,i)=>{
+ const search=String(document.getElementById("contactsQ")?.value||"").trim().toLowerCase();
+ const rows=contactOwnerNames().filter(n=>n.toLowerCase().includes(search)).map((owner,i)=>{
   const rec=whatsappCentralByOwner[normalizeOwnerName(owner)],phone=String(rec?.phone||"").trim();
   const count=programs.filter(p=>normalizeOwnerName(p.owner||"")===normalizeOwnerName(owner)).length;
-  return `<tr><td>${i+1}</td><td><b>${esc(owner)}</b></td><td dir="ltr">${phone?esc(phone):'<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>'}</td><td>${count}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="outline" onclick="openContactEditor(${rec?.id||"null"},${q(owner)},${q(phone)})">✏️ تحرير</button>${rec?'<button class="danger" onclick="deleteDirectoryContact('+Number(rec.id)+')">🗑️ حذف</button>':""}</div></td></tr>`;
+  return `<tr><td>${i+1}</td><td><b>${esc(owner)}</b></td><td dir="ltr">${phone?esc(phone):'<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>'}</td><td>${count}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="outline" onclick="openContactEditor(${rec?.id||"null"},${jsString(owner)},${jsString(phone)})">✏️ تحرير</button>${rec?'<button class="danger" onclick="deleteDirectoryContact('+Number(rec.id)+')">🗑️ حذف</button>':""}</div></td></tr>`;
  }).join("");
  tbody.innerHTML=rows||"<tr><td colspan=\"5\">لا توجد أسماء منفذين في الفصل الحالي.</td></tr>";
 }
