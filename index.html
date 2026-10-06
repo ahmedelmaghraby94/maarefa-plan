@@ -812,6 +812,17 @@ const whatsappDisplayNames={
 function whatsappContacts(owner){
  const raw=String(owner||"");
  const normalized=normalizeOwnerName(raw);
+ // ربط أسماء الجهات/الأقسام بالمسؤول المحدد من المستخدم
+ const departmentContacts=[
+  {match:["اداره المدرسه","الاداره المدرسيه"],name:"أ- وديع بخاري",phone:"0590052821"},
+  {match:["قسم الكيمياء","الكيمياء"],name:"محمد القاضي",phone:"0547453119"},
+  {match:["قسم الفيزياء","الفيزياء"],name:"عادل الشيخ",phone:"0506507356"},
+  {match:["قسم اللغه الانجليزيه","قسم الانجليزيه","اللغه الانجليزيه"],name:"شعبان أمين",phone:"0506502670"},
+  {match:["قسم الاحياء","الاحياء"],name:"السيد الملاح",phone:"0567383513"},
+  {match:["قسم الرياضيات","الرياضيات"],name:"فريد حسين",phone:"0566629834"}
+ ];
+ const department=departmentContacts.find(x=>x.match.some(m=>normalized.includes(normalizeOwnerName(m))));
+ if(department)return [{name:department.name,phone:department.phone}];
  const out=[];
  if(/فريد\s+حسين/.test(normalized)) out.push({name:"فريد حسين",phone:whatsappDirectory["فريد حسين"]});
  if(/رزق\s+رشاد/.test(normalized)) out.push({name:"رزق رشاد",phone:whatsappDirectory["رزق رشاد"]});
