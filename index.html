@@ -598,6 +598,7 @@ function openSemesterPdfWindow(semester,rows,existingWindow){
    const ev=ordered.filter(x=>Number(x.p?.id)===Number(p.id)).length;
    return '<tr><td>'+(i+1)+'</td><td class="program-name">'+escHtml(p.name||"")+'</td><td>'+escHtml(timingLabel(p)||"")+'</td><td>'+escHtml(p.execution_date||"-")+'</td><td>'+escHtml(p.owner||"-")+'</td><td>'+escHtml(p.status||"")+'</td><td>'+progressValue(p)+'%</td><td>'+ev+'</td></tr>';
  }).join("");
+ const groups=timingGroups();
  const groupRows=groups.map(g=>'<tr><td>'+escHtml(g.label)+'</td><td>'+g.count+'</td><td>'+Math.round(g.avg||0)+'%</td></tr>').join("");
  const evidenceItems=ordered.map((x,i)=>{
    const url=String(x.url||""),name=escHtml(x.e?.file_name||"الشاهد"),program=escHtml(x.p?.name||"برنامج"),low=String(x.e?.file_name||"").toLowerCase();
