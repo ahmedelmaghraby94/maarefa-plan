@@ -916,7 +916,7 @@ function renderWhatsAppDirectory(){
  const rows=contactOwnerNames().filter(n=>n.toLowerCase().includes(search)).map((owner,i)=>{
   const rec=whatsappCentralByOwner[normalizeOwnerName(owner)],phone=String(rec?.phone||"").trim();
   const count=programs.filter(p=>normalizeOwnerName(p.owner||"")===normalizeOwnerName(owner)).length;
-  return `<tr><td>${i+1}</td><td><b>${esc(owner)}</b></td><td dir="ltr">${phone?esc(phone):'<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>'}</td><td>${count}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="outline" onclick="openContactEditor(${rec?.id||"null"},${jsString(owner)},${jsString(phone)})">✏️ تحرير</button>${rec?'<button class="danger" onclick="deleteDirectoryContact('+Number(rec.id)+')">🗑️ حذف</button>':""}</div></td></tr>`;
+  return `<tr><td>${i+1}</td><td><b>${esc(owner)}</b></td><td dir="ltr">${phone?esc(phone):'<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>'}</td><td>${count}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="outline" onclick="openContactEditor(${rec?.id||"null"},${jsString(owner)},${jsString(phone)})">✏️ تحرير</button><button class="danger" onclick="deleteDirectoryContactByOwner(jsString(owner))">🗑️ حذف</button></div></td></tr>`;
  }).join("");
  tbody.innerHTML=rows||"<tr><td colspan=\"5\">لا توجد أسماء منفذين في الفصل الحالي.</td></tr>";
 }
@@ -935,6 +935,24 @@ async function saveDirectoryContact(id=null){
  const r=id?await sb.from("whatsapp_contacts").update(payload).eq("id",id):await sb.from("whatsapp_contacts").upsert(payload,{onConflict:"owner_name"});
  if(r.error){if(msg)msg.innerHTML=`<p class="error">${esc(r.error.message)}</p>`;if(btn){btn.disabled=false;btn.textContent="حفظ"};return}
  closeModal();await loadWhatsAppDirectory();renderWhatsAppDirectory();renderPrograms();showAppMessage("تم حفظ رقم التواصل وتحديثه بجوار البرامج المرتبطة بالمنفذ.","success");
+}
+async function deleteDirectoryContactByOwner(owner){
+ const key=normalizeOwnerName(owner);
+ const matches=whatsappDirectoryRows.filter(x=>normalizeOwnerName(x.owner_name)===key);
+ if(matches.length){
+   for(const rec of matches){await deleteDirectoryContact(Number(rec.id));}
+   return;
+ }
+ if(!confirm("لا يوجد سجل مستقل مطابق لهذا الاسم في قاعدة التواصل. هل تريد البحث عن سجلات مطابقة وحذفها؟"))return;
+ const r=await sb.from("whatsapp_contacts").select("id,owner_name").ilike("owner_name",String(owner).trim());
+ if(r.error){alert("تعذر البحث عن رقم التواصل: "+r.error.message);return}
+ if(!r.data?.length){alert("لا يوجد سجل رقم تواصل محفوظ لهذا الاسم لحذفه. لم يتم حذف أي برنامج.");return}
+ for(const rec of r.data){
+   const d=await sb.from("whatsapp_contacts").delete().eq("id",Number(rec.id)).select("id");
+   if(d.error){alert("تعذر حذف السجل: "+d.error.message);return}
+ }
+ await loadWhatsAppDirectory();renderWhatsAppDirectory();renderPrograms();
+ showAppMessage("تم حذف سجل التواصل المطابق. بقيت البرامج محفوظة.","success");
 }
 async function deleteDirectoryContact(id){
  const rec=whatsappDirectoryRows.find(x=>Number(x.id)===Number(id));
