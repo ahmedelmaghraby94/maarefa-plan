@@ -937,10 +937,16 @@ async function saveDirectoryContact(id=null){
  closeModal();await loadWhatsAppDirectory();renderWhatsAppDirectory();renderPrograms();showAppMessage("تم حفظ رقم التواصل وتحديثه بجوار البرامج المرتبطة بالمنفذ.","success");
 }
 async function deleteDirectoryContact(id){
- if(!confirm("هل تريد حذف رقم التواصل من قاعدة البيانات؟ ستبقى البرامج ظاهرة، لكن لن يظهر لها رقم مركزي."))return;
- const r=await sb.from("whatsapp_contacts").delete().eq("id",id);
- if(r.error){alert("تعذر حذف الرقم: "+r.error.message);return}
- await loadWhatsAppDirectory();renderWhatsAppDirectory();renderPrograms();showAppMessage("تم حذف رقم التواصل.","success");
+ const rec=whatsappDirectoryRows.find(x=>Number(x.id)===Number(id));
+ if(!rec)return;
+ if(!confirm("هل تريد حذف الاسم ورقم التواصل ("+String(rec.owner_name||"")+") نهائيًا من قاعدة أرقام التواصل؟ ستبقى البرامج محفوظة، لكن لن يبقى هذا السجل في دليل التواصل."))return;
+ const r=await sb.from("whatsapp_contacts").delete().eq("id",Number(id)).select("id");
+ if(r.error){alert("تعذر حذف الاسم والرقم: "+r.error.message);return}
+ if(!r.data||!r.data.length){alert("لم يُحذف السجل. تحقق من صلاحيات الحذف في قاعدة البيانات.");return}
+ await loadWhatsAppDirectory();
+ renderWhatsAppDirectory();
+ renderPrograms();
+ showAppMessage("تم حذف اسم المنفذ ورقم التواصل من قاعدة أرقام التواصل.","success");
 }
 
 function renderWhatsAppButtons(program){
