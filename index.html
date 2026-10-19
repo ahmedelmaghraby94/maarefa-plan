@@ -435,11 +435,11 @@ async function loadSemesters(preferredSid=null){
 async function loadPrograms(sid){
  programs=[];
  if(!sid) throw new Error("لم يتم تحديد الفصل الدراسي الحالي.");
- let r=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order,created_at").eq("semester_id",sid).order("plan_order",{ascending:true});
+ let r=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order,created_at,added_via_button").eq("semester_id",sid).order("plan_order",{ascending:true});
  if(r.error) throw new Error("تعذر تحميل البرامج: "+r.error.message);
  programs=r.data||[];
  if(!programs.length){
-   const all=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order,created_at").order("plan_order",{ascending:true});
+   const all=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order,created_at,added_via_button").order("plan_order",{ascending:true});
    if(all.error) throw new Error("تعذر قراءة برامج الخطة: "+all.error.message);
    const allRows=all.data||[];
    const match=allRows.filter(x=>Number(x.semester_id)===Number(sid));
