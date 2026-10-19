@@ -1239,7 +1239,7 @@ async function saveProgram(id){
    }else{
      const semesterId=Number(document.getElementById("semesterSelect")?.value||0);
      if(!semesterId)throw new Error("لم يتم تحديد الفصل الدراسي.");
-     r=await withTimeout(sb.from("programs").insert({...obj,semester_id:semesterId,plan_order:(programs.reduce((m,x)=>Math.max(m,Number(x.plan_order)||0),0)+1)}).select().single(),15000,"انتهت مهلة إضافة البرنامج. حاول مرة أخرى.");
+     r=await withTimeout(sb.from("programs").insert({...obj,semester_id:semesterId,added_via_button:true,plan_order:(programs.reduce((m,x)=>Math.max(m,Number(x.plan_order)||0),0)+1)}).select().single(),15000,"انتهت مهلة إضافة البرنامج. حاول مرة أخرى.");
      if(r.error)throw new Error(r.error.message);
    }
    // أعد القراءة من Supabase بدل الاعتماد على الحالة المحلية، حتى يظهر التعديل فعليًا بعد الحفظ.
