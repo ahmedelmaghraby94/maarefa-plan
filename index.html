@@ -435,11 +435,11 @@ async function loadSemesters(preferredSid=null){
 async function loadPrograms(sid){
  programs=[];
  if(!sid) throw new Error("لم يتم تحديد الفصل الدراسي الحالي.");
- let r=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order").eq("semester_id",sid).order("plan_order",{ascending:true});
+ let r=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order,created_at").eq("semester_id",sid).order("plan_order",{ascending:true});
  if(r.error) throw new Error("تعذر تحميل البرامج: "+r.error.message);
  programs=r.data||[];
  if(!programs.length){
-   const all=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order").order("plan_order",{ascending:true});
+   const all=await sb.from("programs").select("id,semester_id,name,week_no,execution_timing,execution_date,owner,status,progress,plan_order,created_at").order("plan_order",{ascending:true});
    if(all.error) throw new Error("تعذر قراءة برامج الخطة: "+all.error.message);
    const allRows=all.data||[];
    const match=allRows.filter(x=>Number(x.semester_id)===Number(sid));
@@ -999,7 +999,7 @@ function renderPrograms(){
  programRows.innerHTML=keys.map(k=>{
    const rows=groups[k],title=k==="before"?"برامج ما قبل الدراسة":k==="continuous"?"البرامج المستمرة":k==="appointment"?"البرامج حسب الموعد":`الأسبوع ${weekNames[Number(k.split("_")[1])]||k.split("_")[1]}`;
    const isCoordinator=String(me?.role||"").trim().toLowerCase()==="coordinator";
-   const trs=rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td class="whatsapp-cell">${renderWhatsAppButtons(x)}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">${isCoordinator?'<button class="coordinator-action" onclick="uploadEvidenceFromPrograms('+x.id+')">📎 رفع الشواهد</button>':""}<button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button>${isCoordinator?'<button class="outline coordinator-action" onclick="openProgram('+x.id+')">✏️ تحرير البرنامج</button>':""}</div></td></tr>`).join("");
+   const trs=rows.map(x=>`<tr><td><b style="${x.created_at?'color:#1d4ed8':''}">${esc(x.name)}</b>${x.created_at?`<div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:600">أضيف في: ${esc(new Date(x.created_at).toLocaleDateString("ar-SA",{year:"numeric",month:"2-digit",day:"2-digit"}))}</div>`:""}</td><td>${esc(timingLabel(x))}</td><td>${x.execution_date||"—"}</td><td>${esc(x.owner||"-")}</td><td>${badge(x.status)}</td><td><div class="bar"><i style="width:${progressValue(x)}%"></i></div>${progressValue(x)}%</td><td>${x.evidence?.[0]?.count||0}</td><td class="whatsapp-cell">${renderWhatsAppButtons(x)}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">${isCoordinator?'<button class="coordinator-action" onclick="uploadEvidenceFromPrograms('+x.id+')">📎 رفع الشواهد</button>':""}<button class="outline" onclick="printProgramEvidence(${x.id})">🖨️ طباعة</button>${isCoordinator?'<button class="outline coordinator-action" onclick="openProgram('+x.id+')">✏️ تحرير البرنامج</button>':""}</div></td></tr>`).join("");
    return `<tr><td colspan="9" style="background:#eaf3ff;color:#123b70;font-weight:800;font-size:15px;border-top:2px solid #c9dcf5">📅 ${title} — ${rows.length} برنامج</td></tr>${trs}`;
  }).join("")||"<tr><td colspan='9'>لا توجد برامج مطابقة.</td></tr>";
 }
