@@ -760,7 +760,17 @@ function weekNumber(w){
 function renderDashboard(){
  const n=programs.length,d=programs.filter(x=>x.status==="تم التنفيذ").length,doing=programs.filter(x=>x.status==="قيد التنفيذ").length,late=programs.filter(x=>x.status==="متأخر").length,nd=n-d-doing-late,noEv=programs.filter(x=>x.status==="تم التنفيذ"&&!(Number(x.evidence?.[0]?.count)||0)).length;
  document.getElementById("total").textContent=n;done.textContent=d;document.getElementById("doing").textContent=doing;notdone.textContent=nd;document.getElementById("late").textContent=late;document.getElementById("noEvidence").textContent=noEv;avg.textContent=(n?Math.round(programs.reduce((s,x)=>s+progressValue(x),0)/n):0)+"%";
- latest.innerHTML=programs.slice(0,8).map(x=>`<div class="evidence-row"><span><b>${esc(x.name)}</b> — ${esc(timingLabel(x))} — ${esc(x.owner||"")}</span>${badge(x.status)} <span>${progressValue(x)}%</span></div>`).join("")||"<p>لا توجد برامج.</p>";
+ const dateValue=p=>{const t=Date.parse(String(p.execution_date||""));return Number.isFinite(t)?t:0};
+ const weekValue=p=>Number(p.week_no)||Number((String(timingLabel(p)).match(/(?:الأسبوع|اسبوع)\\s*(\\d+)/)||[])[1])||0;
+ const completedRecent=programs.filter(p=>p.status==="تم التنفيذ").sort((a,b)=>dateValue(b)-dateValue(a)||weekValue(b)-weekValue(a)||Number(b.plan_order||0)-Number(a.plan_order||0)).slice(0,8);
+ const latePrograms=programs.filter(p=>p.status==="متأخر").sort((a,b)=>dateValue(a)-dateValue(b)||weekValue(a)-weekValue(b));
+ const noEvidencePrograms=programs.filter(p=>!(Number(p.evidence?.[0]?.count)||0)).sort((a,b)=>dateValue(a)-dateValue(b)||weekValue(a)-weekValue(b));
+ const alertRows=(items,label,color)=>items.length?items.map(p=>`<button type="button" onclick="openProgramFromCard(${p.id})" style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:right;background:#fff;border:1px solid ${color}33;border-right:4px solid ${color};border-radius:8px;padding:9px 11px;margin:6px 0;cursor:pointer;color:inherit"><span><b>${esc(p.name||"برنامج")}</b><small style="display:block;color:#64748b;margin-top:3px">${esc(timingLabel(p))} · ${esc(p.owner||"المنفذ غير محدد")}</small></span><span style="color:${color};font-weight:800;white-space:nowrap">${label}</span></button>`).join(""):`<p style="color:#64748b;margin:8px 0">لا توجد برامج في هذه القائمة.</p>`;
+ latest.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+ <section style="min-width:0"><h4 style="margin:0 0 8px;color:#15803d">آخر البرامج المنفذة <span style="font-weight:500;color:#64748b">(${completedRecent.length})</span></h4>${completedRecent.length?completedRecent.map(p=>`<div class="evidence-row"><span><b>${esc(p.name||"")}</b><small style="display:block;color:#64748b;margin-top:3px">${esc(timingLabel(p))}${p.execution_date?" · "+esc(p.execution_date):""} · ${esc(p.owner||"")}</small></span>${badge(p.status)}</div>`).join(""):"<p style='color:#64748b'>لم يتم تسجيل برامج منفذة بعد.</p>"}</section>
+ <section style="min-width:0"><h4 style="margin:0 0 8px;color:#b91c1c">تنبيه: البرامج المتأخرة <span style="font-weight:500;color:#64748b">(${latePrograms.length})</span></h4>${alertRows(latePrograms,"متأخر","#dc2626")}</section>
+ <section style="min-width:0"><h4 style="margin:0 0 8px;color:#b45309">تنبيه: برامج بلا شواهد <span style="font-weight:500;color:#64748b">(${noEvidencePrograms.length})</span></h4>${alertRows(noEvidencePrograms,"لا توجد شواهد","#d97706")}</section>
+ </div>`;
  const groups=timingGroups(),labels=groups.map(g=>g.label),vals=groups.map(g=>g.avg);
  if(!window.Chart){
    if(!window.__chartLoading){
