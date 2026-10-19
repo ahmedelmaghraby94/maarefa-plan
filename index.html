@@ -850,17 +850,10 @@ const whatsappDisplayNames={
  "محمد القرشي":"محمد القرشي","احمد جمعه":"أحمد جمعة"
 };
 function whatsappContacts(owner,program){
- const central=whatsappCentralByOwner[normalizeOwnerName(owner||"")];
- if(central && String(central.phone||"").trim()) return [{name:String(central.owner_name||owner||"المنفذ"),phone:String(central.phone).trim()}];
+ const rawNames=String(owner||"").split(/[,،؛;\\n]+/).map(n=>n.trim()).filter(Boolean);
+ const names=rawNames.length?rawNames:[String(owner||"").trim()].filter(Boolean);
+ const out=[];
  const explicit=program?.whatsappContact;
- if(explicit){
-   const phone=String(explicit.phone||"").trim();
-   if(!phone)return [];
-   return [{name:String(explicit.contact_name||program?.owner||owner||"المنفذ"),phone}];
- }
- const raw=String(owner||"");
- const normalized=normalizeOwnerName(raw);
- // ربط أسماء الجهات/الأقسام بالمسؤول المحدد من المستخدم
  const departmentContacts=[
   {match:["اداره المدرسه","الاداره المدرسيه"],name:"أ- وديع بخاري",phone:"0590052821"},
   {match:["قسم الكيمياء","الكيمياء"],name:"محمد القاضي",phone:"0547453119"},
@@ -869,14 +862,25 @@ function whatsappContacts(owner,program){
   {match:["قسم الاحياء","الاحياء"],name:"السيد الملاح",phone:"0567383513"},
   {match:["قسم الرياضيات","الرياضيات"],name:"فريد حسين",phone:"0566629834"}
  ];
- const department=departmentContacts.find(x=>x.match.some(m=>normalized.includes(normalizeOwnerName(m))));
- if(department)return [{name:department.name,phone:department.phone}];
- const out=[];
- if(/فريد\s+حسين/.test(normalized)) out.push({name:"فريد حسين",phone:whatsappDirectory["فريد حسين"]});
- if(/رزق\s+رشاد/.test(normalized)) out.push({name:"رزق رشاد",phone:whatsappDirectory["رزق رشاد"]});
- if(out.length)return out;
- const key=Object.keys(whatsappDirectory).find(k=>normalized===normalizeOwnerName(k)||normalized.includes(normalizeOwnerName(k)));
- return key?[{name:whatsappDisplayNames[key]||key,phone:whatsappDirectory[key]}]:[];
+ for(const name of names){
+  const normalized=normalizeOwnerName(name);
+  const central=whatsappCentralByOwner[normalized];
+  if(central && String(central.phone||"").trim()){
+   out.push({name:String(central.owner_name||name),phone:String(central.phone).trim()});continue;
+  }
+  const department=departmentContacts.find(x=>x.match.some(m=>normalized.includes(normalizeOwnerName(m))));
+  if(department){out.push({name:department.name,phone:department.phone});continue;}
+  if(explicit && names.length===1){
+   const phone=String(explicit.phone||"").trim();
+   if(phone)out.push({name:String(explicit.contact_name||name||"المنفذ"),phone});
+   continue;
+  }
+  if(/فريد\\s+حسين/.test(normalized)){out.push({name:"فريد حسين",phone:whatsappDirectory["فريد حسين"]});continue;}
+  if(/رزق\\s+رشاد/.test(normalized)){out.push({name:"رزق رشاد",phone:whatsappDirectory["رزق رشاد"]});continue;}
+  const key=Object.keys(whatsappDirectory).find(k=>normalized===normalizeOwnerName(k)||normalized.includes(normalizeOwnerName(k)));
+  if(key)out.push({name:whatsappDisplayNames[key]||key,phone:whatsappDirectory[key]});
+ }
+ return out.filter((x,i,a)=>x.phone&&a.findIndex(y=>String(y.phone).replace(/\\D/g,"")===String(x.phone).replace(/\\D/g,""))===i);
 }
 function whatsappMessage(program,contact){
  const status=String(program?.status||"لم ينفذ").trim();
@@ -916,7 +920,7 @@ function renderWhatsAppDirectory(){
  const search=String(document.getElementById("contactsQ")?.value||"").trim().toLowerCase();
  const rows=contactOwnerNames().filter(n=>n.toLowerCase().includes(search)).map((owner,i)=>{
   const rec=whatsappCentralByOwner[normalizeOwnerName(owner)],phone=String(rec?.phone||"").trim();
-  const count=programs.filter(p=>normalizeOwnerName(p.owner||"")===normalizeOwnerName(owner)).length;
+  const count=programs.filter(p=>String(p.owner||"").split(/[,،؛;\\n]+/).some(n=>normalizeOwnerName(n.trim())===normalizeOwnerName(owner))).length;
   return `<tr><td>${i+1}</td><td><b>${esc(owner)}</b></td><td dir="ltr">${phone?esc(phone):'<span class="whatsapp-unavailable">لا يوجد رقم مسجل</span>'}</td><td>${count}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="outline" onclick="openContactEditor(${rec?.id||"null"},${jsString(owner)},${jsString(phone)})">✏️ تحرير</button><button class="danger" onclick="deleteDirectoryContactByOwner(${jsString(owner)})">🗑️ حذف</button></div></td></tr>`;
  }).join("");
  tbody.innerHTML=rows||"<tr><td colspan=\"5\">لا توجد أسماء منفذين في الفصل الحالي.</td></tr>";
@@ -1172,7 +1176,7 @@ function openProgram(id){
  <select id="pw">${weekOptions.map(o=>`<option value="${o[0]}" ${Number(x.week_no)===Number(o[0])?"selected":""}>${o[1]}</option>`).join("")}</select>
  <input id="pt" value="${escapeAttr(x.execution_timing||timingLabel(x))}" placeholder="موعد التنفيذ حسب الخطة (مثال: الأسبوع الأول)">
  <input id="pd" type="date" value="${x.execution_date||""}" title="تاريخ التنفيذ الدقيق (اختياري)">
- <input id="po" value="${escapeAttr(x.owner||"")}" placeholder="اسم المنفذ">
+ <input id="po" value="${escapeAttr(x.owner||"")}" placeholder="أسماء المنفذين (افصل بين الأسماء بفاصلة)">
  <select id="ps" onchange="if(this.value==='قيد التنفيذ')document.getElementById('pp').value=50">${["لم ينفذ","قيد التنفيذ","متأخر","تم التنفيذ"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select>
  <input id="pp" type="number" min="0" max="100" value="${progressValue(x)}" placeholder="نسبة الإنجاز">
  </div>
@@ -1214,7 +1218,7 @@ async function saveProgram(id){
  const timing=timingEl.value.trim()||"غير محدد";
  const enteredProgress=Math.max(0,Math.min(100,Number(progressEl.value)||0));
  const progress=statusEl.value==="تم التنفيذ"?100:statusEl.value==="لم ينفذ"?0:statusEl.value==="قيد التنفيذ"?50:enteredProgress;
- const selectedWeek=Number(weekEl?.value||0); const obj={name,execution_timing:timing,execution_date:dateEl.value||null,week_no:selectedWeek||weekNumber(timing),owner:ownerEl.value.trim(),status:statusEl.value,progress};
+ const selectedWeek=Number(weekEl?.value||0); const obj={name,execution_timing:timing,execution_date:dateEl.value||null,week_no:selectedWeek||weekNumber(timing),owner:[...new Set(ownerEl.value.split(/[,،؛;\\n]+/).map(n=>n.trim()).filter(Boolean))].join("، "),status:statusEl.value,progress};
  const saveBtn=document.querySelector('#modal .actions button:not(.outline)');
  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent="جارٍ الحفظ..."}
  try{
