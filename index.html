@@ -905,8 +905,9 @@ async function loadWhatsAppDirectory(showMessage=false){
  if(showMessage)showAppMessage("تم تحديث قاعدة أرقام التواصل.","success");
 }
 function contactOwnerNames(){
+ // دليل أرقام التواصل يعرض السجلات المحفوظة فقط؛ حذف السجل يخفي الاسم والرقم
+ // من هذا الدليل، مع إبقاء البرامج نفسها محفوظة.
  const names=[];
- programs.forEach(p=>{const n=String(p.owner||"").trim();if(n&&!names.some(x=>normalizeOwnerName(x)===normalizeOwnerName(n)))names.push(n)});
  whatsappDirectoryRows.forEach(x=>{const n=String(x.owner_name||"").trim();if(n&&!names.some(v=>normalizeOwnerName(v)===normalizeOwnerName(n)))names.push(n)});
  return names.sort((a,b)=>a.localeCompare(b,"ar"));
 }
