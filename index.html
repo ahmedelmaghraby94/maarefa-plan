@@ -603,11 +603,11 @@ async function buildPlanIntroPrintHtml(){
   const blocks=Array.isArray(section.blocks)?section.blocks:[];
   const body=blocks.length?blocks.map(block=>{
    const heading=block.title?'<h3 class="intro-block-title">'+escHtml(block.title)+'</h3>':"";
-   if(block.type==="table")return '<div class="intro-block">'+heading+'<table class="intro-table"><thead><tr>'+(block.headers||[]).map(x=>'<th>'+escHtml(x)+'</th>').join("")+'</tr></thead><tbody>'+(block.rows||[]).map(row=>'<tr>'+row.map(x=>'<td>'+escHtml(x).replace(/\\n/g,"<br>")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
-   if(block.type==="cards")return '<div class="intro-block">'+heading+'<div class="intro-cards">'+(block.cards||[]).map(card=>'<article class="intro-card"><h4>'+escHtml(card.title||"")+'</h4><p>'+escHtml(card.text||"").replace(/\\n/g,"<br>")+'</p></article>').join("")+'</div></div>';
-   if(block.type==="list")return '<div class="intro-block">'+heading+'<ol class="intro-list">'+(block.items||[]).map(x=>'<li>'+escHtml(x).replace(/\\n/g,"<br>")+'</li>').join("")+'</ol></div>';
+   if(block.type==="table")return '<div class="intro-block">'+heading+'<table class="intro-table"><thead><tr>'+(block.headers||[]).map(x=>'<th>'+escHtml(x)+'</th>').join("")+'</tr></thead><tbody>'+(block.rows||[]).map(row=>'<tr>'+row.map(x=>'<td>'+escHtml(x).replace(/\n/g,"<br>")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
+   if(block.type==="cards")return '<div class="intro-block">'+heading+'<div class="intro-cards">'+(block.cards||[]).map(card=>'<article class="intro-card"><h4>'+escHtml(card.title||"")+'</h4><p>'+escHtml(card.text||"").replace(/\n/g,"<br>")+'</p></article>').join("")+'</div></div>';
+   if(block.type==="list")return '<div class="intro-block">'+heading+'<ol class="intro-list">'+(block.items||[]).map(x=>'<li>'+escHtml(x).replace(/\n/g,"<br>")+'</li>').join("")+'</ol></div>';
    return "";
-  }).join(""):'<div class="intro-content">'+escHtml(section.content||"").replace(/\\n/g,"<br>")+'</div>';
+  }).join(""):'<div class="intro-content">'+escHtml(section.content||"").replace(/\n/g,"<br>")+'</div>';
   return '<section class="plan-intro-print-page"><div class="intro-kicker">الخطة التشغيلية</div><h2 class="intro-section-title">'+escHtml(section.title||"")+'</h2>'+body+'</section>';
  }).join("");
  if(!html)return "";
