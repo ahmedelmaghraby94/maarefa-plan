@@ -132,6 +132,18 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 
 /* صفحة مقدمة وأهداف الخطة التشغيلية */
 .plan-intro-sections{display:grid;gap:16px}.plan-intro-card{border:1px solid #c7d8ed;border-radius:15px;padding:20px;background:#f3f7fd}.plan-intro-heading{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px;padding:15px 18px;border:1px solid #b7cce7;border-radius:12px;background:#dceafe;text-align:center;min-height:76px}.plan-intro-heading h3{margin:0;color:#123b70;font-size:24px;font-weight:800;text-align:center;flex:1}.plan-intro-index{flex:0 0 32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#123b70;font-weight:800}.plan-intro-title-label{display:grid;gap:6px;flex:1;max-width:100%;font-weight:700;color:#23446f;font-size:13px;text-align:center}.plan-intro-title-label input{width:100%;border:1px solid #b7cce7;border-radius:10px;padding:12px;background:#fff;color:#123b70;font:800 23px Tahoma,Arial,sans-serif;line-height:1.7;text-align:center}.plan-intro-content-label{display:grid;gap:8px;width:100%;font-weight:700;color:#334155;font-size:13px}.plan-intro-content-label textarea{width:100%;border:1px solid #d5dfeb;border-radius:10px;padding:12px;background:#fff;color:#172033;font:inherit;line-height:1.9;min-height:150px;resize:vertical;white-space:pre-wrap}.plan-intro-content{font-size:15px;line-height:2.05;color:#26364c;white-space:normal;overflow-wrap:anywhere}.plan-intro-empty{color:#94a3b8;font-style:italic}.plan-intro-actions{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}.plan-intro-actions small{color:#15803d;font-weight:700}.plan-intro-actions button:disabled{opacity:.65;cursor:wait}.plan-intro-actions .plan-intro-delete{background:#b91c1c;color:#fff}.plan-intro-actions .plan-intro-delete:hover{background:#991b1b}@media(max-width:600px){.plan-intro-card{padding:14px}.plan-intro-heading{padding:12px;gap:8px}.plan-intro-heading h3{font-size:21px}.plan-intro-title-label input{font-size:19px}.plan-intro-content{font-size:14px}}
+
+.plan-intro-card{padding:24px!important}.plan-intro-content{font-size:19px!important;line-height:2.1!important}.plan-intro-content-label textarea{font-size:19px!important;line-height:2!important;min-height:190px}
+.plan-intro-structured{display:grid;gap:20px}.plan-intro-block-title{font-size:21px;font-weight:800;color:#173b70;margin:8px 0 12px;text-align:center}
+.plan-intro-table-wrap{width:100%;overflow-x:auto;border:1px solid #b9c9d9;border-radius:12px;background:#fff}.plan-intro-table{width:100%;min-width:560px;border-collapse:collapse}
+.plan-intro-table th{background:#0f766e;color:#fff;font-size:18px;font-weight:800;text-align:center;padding:14px 10px;border:1px solid #0b5f59}
+.plan-intro-table td{font-size:18px;color:#172033;padding:12px 10px;border:1px solid #cbd5e1;vertical-align:middle;line-height:1.8}.plan-intro-table tr:nth-child(even) td{background:#f0fdfa}
+.plan-intro-table input,.plan-intro-table textarea{width:100%;min-width:90px;border:1px solid #b8c7d8;border-radius:7px;padding:9px;background:#fff;font:600 17px/1.7 Tahoma,Arial,sans-serif;color:#172033;text-align:right}.plan-intro-table textarea{min-height:62px;resize:vertical}
+.plan-intro-visual-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}.plan-intro-visual{background:linear-gradient(180deg,#fff 0 28%,#087f72 28% 100%);border:2px solid #c7b27c;border-radius:18px;overflow:hidden;box-shadow:0 8px 20px #173b7018;text-align:center;min-height:230px}.plan-intro-visual h4{margin:0;padding:15px 8px;color:#7c642f;background:#f5edda;font-size:21px}.plan-intro-visual .visual-copy{padding:22px 16px;color:#fff;font-size:18px;line-height:2;font-weight:700;white-space:pre-wrap}
+.plan-intro-visual input,.plan-intro-visual textarea{display:block;width:calc(100% - 20px);margin:10px auto;border:1px solid #b7d9d3;border-radius:8px;padding:10px;background:#fff;color:#173b70;font:700 18px/1.8 Tahoma,Arial,sans-serif;text-align:center}.plan-intro-visual textarea{min-height:155px;resize:vertical}
+.plan-intro-list{display:grid;gap:10px}.plan-intro-list-item{padding:14px 18px;border:1px solid #b8d6e8;border-right:6px solid #2563eb;border-radius:10px;background:#f4f9ff;font-size:19px;line-height:1.9}.plan-intro-list-item textarea{width:100%;min-height:58px;padding:10px;border:1px solid #b8c7d8;border-radius:8px;font:600 18px/1.8 Tahoma,Arial,sans-serif}
+@media(max-width:850px){.plan-intro-visual-grid{grid-template-columns:1fr}.plan-intro-card{padding:16px!important}.plan-intro-table{min-width:640px}.plan-intro-table td,.plan-intro-table th{font-size:16px}}
+
 </style>
 <div id="login" class="center">
   <div class="login-wrap">
@@ -1642,20 +1654,48 @@ async function loadPlanIntroSections(){
  planIntroSections=data||[];
  renderPlanIntro();
 }
+function renderPlanIntroBlock(block,index,canEdit){
+ const esc=(v)=>escHtml(v==null?"":String(v));
+ const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<input class="plan-block-title" data-block="'+index+'" value="'+esc(block.title)+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">':esc(block.title))+'</div>':"";
+ if(block.type==="table"){
+  const head=(block.headers||[]).map((h,c)=>'<th>'+(canEdit?'<input class="plan-block-header" data-block="'+index+'" data-col="'+c+'" value="'+esc(h)+'">':esc(h))+'</th>').join("");
+  const rows=(block.rows||[]).map((row,r)=>'<tr>'+row.map((cell,c)=>'<td>'+(canEdit?'<textarea class="plan-block-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+c+'">'+esc(cell)+'</textarea>':esc(cell).replace(/\n/g,"<br>"))+'</td>').join("")+'</tr>').join("");
+  return '<section class="plan-intro-block">'+title+'<div class="plan-intro-table-wrap"><table class="plan-intro-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+ }
+ if(block.type==="cards"){
+  const cards=(block.cards||[]).map((card,c)=>'<div class="plan-intro-visual"><h4>'+(canEdit?'<input class="plan-card-title" data-block="'+index+'" data-card="'+c+'" value="'+esc(card.title)+'">':esc(card.title))+'</h4><div class="visual-copy">'+(canEdit?'<textarea class="plan-card-copy" data-block="'+index+'" data-card="'+c+'">'+esc(card.text)+'</textarea>':esc(card.text).replace(/\n/g,"<br>"))+'</div></div>').join("");
+  return '<section class="plan-intro-block">'+title+'<div class="plan-intro-visual-grid">'+cards+'</div></section>';
+ }
+ if(block.type==="list"){
+  const items=(block.items||[]).map((item,r)=>'<div class="plan-intro-list-item">'+(canEdit?'<textarea class="plan-block-item" data-block="'+index+'" data-row="'+r+'">'+esc(item)+'</textarea>':esc(item))+'</div>').join("");
+  return '<section class="plan-intro-block">'+title+'<div class="plan-intro-list">'+items+'</div></section>';
+ }
+ return "";
+}
+function collectPlanIntroBlocks(article,section){
+ const blocks=JSON.parse(JSON.stringify(section.blocks||[]));
+ article.querySelectorAll(".plan-block-title").forEach(el=>{blocks[Number(el.dataset.block)].title=el.value});
+ article.querySelectorAll(".plan-block-header").forEach(el=>{blocks[Number(el.dataset.block)].headers[Number(el.dataset.col)]=el.value});
+ article.querySelectorAll(".plan-block-cell").forEach(el=>{blocks[Number(el.dataset.block)].rows[Number(el.dataset.row)][Number(el.dataset.col)]=el.value});
+ article.querySelectorAll(".plan-card-title").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].title=el.value});
+ article.querySelectorAll(".plan-card-copy").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].text=el.value});
+ article.querySelectorAll(".plan-block-item").forEach(el=>{blocks[Number(el.dataset.block)].items[Number(el.dataset.row)]=el.value});
+ return blocks;
+}
 function renderPlanIntro(){
- const host=document.getElementById("planIntroSections");
- if(!host)return;
+ const host=document.getElementById("planIntroSections");if(!host)return;
  const canEdit=String(me?.role||"").trim().toLowerCase()==="coordinator";
  const notice=document.getElementById("planIntroNotice");
- if(notice)notice.textContent=canEdit?"يمكنك تعديل عنوان كل قسم ومحتواه، ثم الضغط على «حفظ القسم». التعديلات تحفظ في قاعدة البيانات وتظهر لجميع المستخدمين.":"عرض محتوى الخطة — التعديل متاح لمنسق الخطة فقط.";
- host.innerHTML=planIntroSections.map((section,index)=>`
-  <article class="card plan-intro-card" data-section="${escHtml(section.slug)}">
-   <div class="plan-intro-heading">
-    <span class="plan-intro-index">${index+1}</span>
-    ${canEdit?`<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-${escHtml(section.slug)}" value="${escHtml(section.title||"")}" aria-label="عنوان القسم"></label>`:`<h3>${escHtml(section.title||"")}</h3>`}
-   </div>
-   ${canEdit?`<label class="plan-intro-content-label">البيانات والمحتوى<textarea id="planContent-${escHtml(section.slug)}" rows="7" dir="rtl">${escHtml(section.content||"")}</textarea></label><div class="plan-intro-actions"><button onclick="savePlanIntroSection('${escHtml(section.slug)}',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection('${escHtml(section.slug)}',this)">حذف القسم</button><small id="planSaved-${escHtml(section.slug)}" aria-live="polite"></small></div>`:`<div class="plan-intro-content">${section.content?escHtml(section.content).replace(/\n/g,"<br>"):'<span class="plan-intro-empty">لا توجد بيانات مدخلة لهذا العنوان في الملف المرفق.</span>'}</div>`}
-  </article>`).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
+ if(notice)notice.textContent=canEdit?"يمكنك تعديل النصوص داخل الجداول والبطاقات مباشرة، ثم حفظ القسم. جميع التعديلات تحفظ وتظهر للمستخدمين.":"عرض محتوى الخطة — التعديل متاح لمنسق الخطة فقط.";
+ host.innerHTML=planIntroSections.map((section,index)=>{
+  const blocks=Array.isArray(section.blocks)?section.blocks:[];
+  const structured=blocks.length>0;
+  const content=structured?'<div class="plan-intro-structured">'+blocks.map((x,i)=>renderPlanIntroBlock(x,i,canEdit)).join("")+'</div>':
+   (canEdit?'<label class="plan-intro-content-label">البيانات والمحتوى<textarea id="planContent-'+escHtml(section.slug)+'" rows="7" dir="rtl">'+escHtml(section.content||"")+'</textarea></label>':'<div class="plan-intro-content">'+(section.content?escHtml(section.content).replace(/\n/g,"<br>"):'<span class="plan-intro-empty">لا توجد بيانات مدخلة لهذا العنوان في الملف المرفق.</span>')+'</div>');
+  return '<article class="card plan-intro-card" data-section="'+escHtml(section.slug)+'"><div class="plan-intro-heading"><span class="plan-intro-index">'+(index+1)+'</span>'+
+   (canEdit?'<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-'+escHtml(section.slug)+'" value="'+escHtml(section.title||"")+'" aria-label="عنوان القسم"></label>':'<h3>'+escHtml(section.title||"")+'</h3>')+
+   '</div>'+content+(canEdit?'<div class="plan-intro-actions"><button onclick="savePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حذف القسم</button><small id="planSaved-'+escHtml(section.slug)+'" aria-live="polite"></small></div>':'')+'</article>';
+ }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
 }
 async function deletePlanIntroSection(slug,button){
  if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("حذف الأقسام متاح لمنسق الخطة فقط.");return}
@@ -1669,14 +1709,17 @@ async function deletePlanIntroSection(slug,button){
 }
 async function savePlanIntroSection(slug,button){
  if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("التعديل متاح لمنسق الخطة فقط.");return}
+ const article=Array.from(document.querySelectorAll("[data-section]")).find(x=>x.dataset.section===slug);
+ const section=planIntroSections.find(x=>x.slug===slug);
  const titleEl=document.getElementById("planTitle-"+slug),contentEl=document.getElementById("planContent-"+slug),msg=document.getElementById("planSaved-"+slug);
- const title=(titleEl?.value||"").trim(),content=contentEl?.value||"";
+ const title=(titleEl?.value||"").trim(),content=contentEl?.value??section?.content??"";
  if(!title){if(msg)msg.textContent="يرجى كتابة عنوان القسم.";return}
+ const blocks=article&&Array.isArray(section?.blocks)&&section.blocks.length?collectPlanIntroBlocks(article,section):section?.blocks||null;
  const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ الحفظ..."}
  try{
-  const {error}=await sb.from("plan_intro_sections").update({title,content,updated_at:new Date().toISOString()}).eq("slug",slug);
-  if(error)throw error;
-  const row=planIntroSections.find(x=>x.slug===slug);if(row){row.title=title;row.content=content;row.updated_at=new Date().toISOString()}
+  const update={title,content,updated_at:new Date().toISOString()};if(blocks)update.blocks=blocks;
+  const {error}=await sb.from("plan_intro_sections").update(update).eq("slug",slug);if(error)throw error;
+  if(section){section.title=title;section.content=content;if(blocks)section.blocks=blocks;section.updated_at=new Date().toISOString()}
   if(msg)msg.textContent="تم حفظ التعديلات بنجاح.";
  }catch(e){if(msg)msg.textContent="تعذر الحفظ: "+(e.message||String(e));}
  finally{if(button){button.disabled=false;button.textContent=old||"حفظ القسم"}}
