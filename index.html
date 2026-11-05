@@ -144,6 +144,14 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 .plan-intro-list{display:grid;gap:10px}.plan-intro-list-item{padding:14px 18px;border:1px solid #b8d6e8;border-right:6px solid #2563eb;border-radius:10px;background:#f4f9ff;font-size:19px;line-height:1.9}.plan-intro-list-item textarea{width:100%;min-height:58px;padding:10px;border:1px solid #b8c7d8;border-radius:8px;font:600 18px/1.8 Tahoma,Arial,sans-serif}
 @media(max-width:850px){.plan-intro-visual-grid{grid-template-columns:1fr}.plan-intro-card{padding:16px!important}.plan-intro-table{min-width:640px}.plan-intro-table td,.plan-intro-table th{font-size:16px}}
 
+
+.plan-intro-table{table-layout:auto}
+.plan-intro-table td{min-width:100px}
+.plan-intro-table textarea.plan-block-cell{resize:both;overflow:auto;min-width:90px;min-height:58px;max-width:100%;box-sizing:border-box;display:block}
+.plan-intro-table th input.plan-block-header{min-width:95px;text-align:center}
+.plan-intro-table td:focus-within{outline:2px solid #60a5fa;outline-offset:-2px}
+.plan-intro-table .cell-size-hint{font-size:12px;color:#64748b;font-weight:500;display:block;margin-top:3px}
+
 </style>
 <div id="login" class="center">
   <div class="login-wrap">
@@ -1659,7 +1667,7 @@ function renderPlanIntroBlock(block,index,canEdit){
  const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<input class="plan-block-title" data-block="'+index+'" value="'+esc(block.title)+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">':esc(block.title))+'</div>':"";
  if(block.type==="table"){
   const head=(block.headers||[]).map((h,c)=>'<th>'+(canEdit?'<input class="plan-block-header" data-block="'+index+'" data-col="'+c+'" value="'+esc(h)+'">':esc(h))+'</th>').join("");
-  const rows=(block.rows||[]).map((row,r)=>'<tr>'+row.map((cell,c)=>'<td>'+(canEdit?'<textarea class="plan-block-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+c+'">'+esc(cell)+'</textarea>':esc(cell).replace(/\n/g,"<br>"))+'</td>').join("")+'</tr>').join("");
+  const rows=(block.rows||[]).map((row,r)=>'<tr>'+row.map((cell,c)=>{const size=block.cellSizes&&block.cellSizes[r]&&block.cellSizes[r][c]||{};const style=(size.width?'width:'+Number(size.width)+'px;':'')+(size.height?'height:'+Number(size.height)+'px;':'');return '<td>'+(canEdit?'<textarea class="plan-block-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+c+'" style="'+style+'">'+esc(cell)+'</textarea><small class="cell-size-hint">اسحب زاوية الخلية لتغيير العرض والارتفاع</small>':esc(cell).replace(/\n/g,"<br>"))+'</td>'}).join("")+'</tr>').join("");
   return '<section class="plan-intro-block">'+title+'<div class="plan-intro-table-wrap"><table class="plan-intro-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></section>';
  }
  if(block.type==="cards"){
@@ -1676,7 +1684,7 @@ function collectPlanIntroBlocks(article,section){
  const blocks=JSON.parse(JSON.stringify(section.blocks||[]));
  article.querySelectorAll(".plan-block-title").forEach(el=>{blocks[Number(el.dataset.block)].title=el.value});
  article.querySelectorAll(".plan-block-header").forEach(el=>{blocks[Number(el.dataset.block)].headers[Number(el.dataset.col)]=el.value});
- article.querySelectorAll(".plan-block-cell").forEach(el=>{blocks[Number(el.dataset.block)].rows[Number(el.dataset.row)][Number(el.dataset.col)]=el.value});
+ article.querySelectorAll(".plan-block-cell").forEach(el=>{const bi=Number(el.dataset.block),ri=Number(el.dataset.row),ci=Number(el.dataset.col);blocks[bi].rows[ri][ci]=el.value;blocks[bi].cellSizes=blocks[bi].cellSizes||[];blocks[bi].cellSizes[ri]=blocks[bi].cellSizes[ri]||[];const w=parseFloat(el.style.width)||el.getBoundingClientRect().width,h=parseFloat(el.style.height)||el.getBoundingClientRect().height;blocks[bi].cellSizes[ri][ci]={width:Math.round(w),height:Math.round(h)}});
  article.querySelectorAll(".plan-card-title").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].title=el.value});
  article.querySelectorAll(".plan-card-copy").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].text=el.value});
  article.querySelectorAll(".plan-block-item").forEach(el=>{blocks[Number(el.dataset.block)].items[Number(el.dataset.row)]=el.value});
