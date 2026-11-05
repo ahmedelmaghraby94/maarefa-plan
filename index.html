@@ -145,12 +145,19 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 @media(max-width:850px){.plan-intro-visual-grid{grid-template-columns:1fr}.plan-intro-card{padding:16px!important}.plan-intro-table{min-width:640px}.plan-intro-table td,.plan-intro-table th{font-size:16px}}
 
 
-.plan-intro-table{table-layout:auto}
-.plan-intro-table td{min-width:100px}
-.plan-intro-table textarea.plan-block-cell{resize:both;overflow:auto;min-width:90px;min-height:58px;max-width:100%;box-sizing:border-box;display:block}
-.plan-intro-table th input.plan-block-header{min-width:95px;text-align:center}
+.plan-intro-table{table-layout:fixed}
+.plan-intro-table td{min-width:48px;position:relative}
+.plan-intro-table th{position:relative}
+.plan-intro-table textarea.plan-block-cell{resize:both;overflow:auto;min-width:42px;min-height:48px;max-width:100%;box-sizing:border-box;display:block}
+.plan-intro-table th input.plan-block-header{min-width:48px;width:100%;text-align:center}
 .plan-intro-table td:focus-within{outline:2px solid #60a5fa;outline-offset:-2px}
-.plan-intro-table .cell-size-hint{font-size:12px;color:#64748b;font-weight:500;display:block;margin-top:3px}
+.plan-intro-table .cell-size-hint{font-size:11px;color:#64748b;font-weight:500;display:block;margin-top:3px}
+.plan-intro-table .plan-col-resizer{position:absolute;left:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:3;touch-action:none}
+.plan-intro-table .plan-col-resizer:after{content:"";position:absolute;left:2px;top:25%;height:50%;width:2px;background:#93a4b8;border-radius:2px}
+.plan-intro-table .plan-col-resizer:hover:after,.plan-intro-table .plan-col-resizer.dragging:after{background:#2563eb;width:3px}
+.plan-intro-table th.plan-number-col,.plan-intro-table td.plan-number-col{width:58px;min-width:48px}
+.plan-intro-table td.plan-number-col textarea{min-width:38px;text-align:center;padding:6px 3px}
+.plan-intro-table td.plan-number-col .cell-size-hint{display:none}
 
 </style>
 <div id="login" class="center">
@@ -1666,9 +1673,11 @@ function renderPlanIntroBlock(block,index,canEdit){
  const esc=(v)=>escHtml(v==null?"":String(v));
  const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<input class="plan-block-title" data-block="'+index+'" value="'+esc(block.title)+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">':esc(block.title))+'</div>':"";
  if(block.type==="table"){
-  const head=(block.headers||[]).map((h,c)=>'<th>'+(canEdit?'<input class="plan-block-header" data-block="'+index+'" data-col="'+c+'" value="'+esc(h)+'">':esc(h))+'</th>').join("");
-  const rows=(block.rows||[]).map((row,r)=>'<tr>'+row.map((cell,c)=>{const size=block.cellSizes&&block.cellSizes[r]&&block.cellSizes[r][c]||{};const style=(size.width?'width:'+Number(size.width)+'px;':'')+(size.height?'height:'+Number(size.height)+'px;':'');return '<td>'+(canEdit?'<textarea class="plan-block-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+c+'" style="'+style+'">'+esc(cell)+'</textarea><small class="cell-size-hint">اسحب زاوية الخلية لتغيير العرض والارتفاع</small>':esc(cell).replace(/\n/g,"<br>"))+'</td>'}).join("")+'</tr>').join("");
-  return '<section class="plan-intro-block">'+title+'<div class="plan-intro-table-wrap"><table class="plan-intro-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+  const numberCols=(block.headers||[]).map((h,c)=>/^م\\.?$/.test(String(h||"").trim())?c:-1).filter(c=>c>=0);
+  const colgroup='<colgroup>'+(block.headers||[]).map((h,c)=>'<col data-col="'+c+'" style="'+(block.columnWidths&&block.columnWidths[c]?'width:'+Number(block.columnWidths[c])+'px;':(numberCols.includes(c)?'width:58px;':''))+'">').join("")+'</colgroup>';
+  const head=(block.headers||[]).map((h,c)=>'<th class="'+(numberCols.includes(c)?'plan-number-col':'')+'">'+(canEdit?'<input class="plan-block-header" data-block="'+index+'" data-col="'+c+'" value="'+esc(h)+'"><span class="plan-col-resizer" data-block="'+index+'" data-col="'+c+'" title="اسحب لتغيير عرض العمود"></span>':esc(h))+'</th>').join("");
+  const rows=(block.rows||[]).map((row,r)=>'<tr>'+row.map((cell,c)=>{const size=block.cellSizes&&block.cellSizes[r]&&block.cellSizes[r][c]||{};const numeric=numberCols.includes(c);const style=(size.width?'width:'+Number(size.width)+'px;':'')+(size.height?'height:'+Number(size.height)+'px;':'');return '<td class="'+(numeric?'plan-number-col':'')+'">'+(canEdit?'<textarea class="plan-block-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+c+'" style="'+style+'">'+esc(cell)+'</textarea><small class="cell-size-hint">اسحب زاوية الخلية لتغيير العرض والارتفاع</small>':esc(cell).replace(/\n/g,"<br>"))+'</td>'}).join("")+'</tr>').join("");
+  return '<section class="plan-intro-block">'+title+'<div class="plan-intro-table-wrap"><table class="plan-intro-table">'+colgroup+'<thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></section>';
  }
  if(block.type==="cards"){
   const cards=(block.cards||[]).map((card,c)=>'<div class="plan-intro-visual"><h4>'+(canEdit?'<input class="plan-card-title" data-block="'+index+'" data-card="'+c+'" value="'+esc(card.title)+'">':esc(card.title))+'</h4><div class="visual-copy">'+(canEdit?'<textarea class="plan-card-copy" data-block="'+index+'" data-card="'+c+'">'+esc(card.text)+'</textarea>':esc(card.text).replace(/\n/g,"<br>"))+'</div></div>').join("");
@@ -1685,10 +1694,29 @@ function collectPlanIntroBlocks(article,section){
  article.querySelectorAll(".plan-block-title").forEach(el=>{blocks[Number(el.dataset.block)].title=el.value});
  article.querySelectorAll(".plan-block-header").forEach(el=>{blocks[Number(el.dataset.block)].headers[Number(el.dataset.col)]=el.value});
  article.querySelectorAll(".plan-block-cell").forEach(el=>{const bi=Number(el.dataset.block),ri=Number(el.dataset.row),ci=Number(el.dataset.col);blocks[bi].rows[ri][ci]=el.value;blocks[bi].cellSizes=blocks[bi].cellSizes||[];blocks[bi].cellSizes[ri]=blocks[bi].cellSizes[ri]||[];const w=parseFloat(el.style.width)||el.getBoundingClientRect().width,h=parseFloat(el.style.height)||el.getBoundingClientRect().height;blocks[bi].cellSizes[ri][ci]={width:Math.round(w),height:Math.round(h)}});
+ article.querySelectorAll(".plan-intro-table").forEach(table=>{const bi=Number(table.querySelector(".plan-block-header")?.dataset.block);if(!Number.isFinite(bi))return;blocks[bi].columnWidths=Array.from(table.querySelectorAll("colgroup col")).map(col=>Math.round(col.getBoundingClientRect().width))});
  article.querySelectorAll(".plan-card-title").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].title=el.value});
  article.querySelectorAll(".plan-card-copy").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].text=el.value});
  article.querySelectorAll(".plan-block-item").forEach(el=>{blocks[Number(el.dataset.block)].items[Number(el.dataset.row)]=el.value});
  return blocks;
+}
+function enablePlanIntroColumnResizing(){
+ const host=document.getElementById("planIntroSections");if(!host||host.dataset.resizeReady)return;host.dataset.resizeReady="1";
+ let drag=null;
+ host.addEventListener("pointerdown",e=>{
+  const handle=e.target.closest(".plan-col-resizer");if(!handle)return;
+  const table=handle.closest("table"),col=table?.querySelectorAll("colgroup col")[Number(handle.dataset.col)];if(!col)return;
+  const startX=e.clientX,startWidth=col.getBoundingClientRect().width;
+  drag={handle,col,startX,startWidth};handle.classList.add("dragging");handle.setPointerCapture?.(e.pointerId);e.preventDefault();
+ });
+ host.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  const table=drag.col.closest("table"),rtl=getComputedStyle(table).direction==="rtl";
+  const delta=(e.clientX-drag.startX)*(rtl?-1:1);
+  drag.col.style.width=Math.max(44,Math.min(900,drag.startWidth+delta))+"px";
+ });
+ const stop=()=>{if(drag){drag.handle.classList.remove("dragging");drag=null}};
+ host.addEventListener("pointerup",stop);host.addEventListener("pointercancel",stop);
 }
 function renderPlanIntro(){
  const host=document.getElementById("planIntroSections");if(!host)return;
@@ -1704,6 +1732,7 @@ function renderPlanIntro(){
    (canEdit?'<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-'+escHtml(section.slug)+'" value="'+escHtml(section.title||"")+'" aria-label="عنوان القسم"></label>':'<h3>'+escHtml(section.title||"")+'</h3>')+
    '</div>'+content+(canEdit?'<div class="plan-intro-actions"><button onclick="savePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حذف القسم</button><small id="planSaved-'+escHtml(section.slug)+'" aria-live="polite"></small></div>':'')+'</article>';
  }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
+ enablePlanIntroColumnResizing();
 }
 async function deletePlanIntroSection(slug,button){
  if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("حذف الأقسام متاح لمنسق الخطة فقط.");return}
