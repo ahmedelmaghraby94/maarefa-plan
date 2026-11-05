@@ -474,6 +474,8 @@ async function signIn(){
    if(btn){btn.disabled=false;btn.textContent="دخول إلى المنصة";}
  }
 }
+// إتاحة وظيفة الدخول عالميًا فور تعريفها، قبل تشغيل بقية واجهة المنصة.
+window.signIn=signIn;
 function toggleSignup(){
  const box=document.getElementById("signupBox");
  box.hidden=!box.hidden;
@@ -1853,7 +1855,6 @@ async function addPlanIntroSection(){
  await loadPlanIntroSections();
 }
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==b.dataset.page);if(b.dataset.page==="evidence")renderEvidence();if(b.dataset.page==="planIntro")loadPlanIntroSections().catch(e=>{const host=document.getElementById("planIntroSections");if(host)host.innerHTML='<div class="card error">'+escHtml(e.message||String(e))+'</div>'})});
-window.signIn=signIn;
 boot().catch(e=>{console.error("boot failed",e);showLogin();const m=document.getElementById("loginMsg");if(m)m.textContent="تعذر تهيئة الدخول: "+(e.message||String(e));});
 </script>
 </body></html>
