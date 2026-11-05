@@ -7,6 +7,15 @@
 <body>
 <div id="loading" hidden>جارٍ التحميل...</div>
 <script>
+/* تشخيص أخطاء JavaScript التي قد تمنع تعريف وظيفة الدخول. */
+window.addEventListener("error",function(event){
+  console.error("Application script error",event.message,event.filename,event.lineno,event.colno);
+  var msg=document.getElementById("loginMsg");
+  if(msg && !window.signIn) msg.textContent="تعذر تحميل وظيفة الدخول: "+(event.message||"خطأ JavaScript")+(event.lineno?" (السطر "+event.lineno+")":"");
+});
+window.addEventListener("unhandledrejection",function(event){
+  console.error("Unhandled application rejection",event.reason);
+});
 /* ربط زر الدخول مبكرًا بطريقة مستقلة عن المعالج inline؛ يعمل حتى لو تأخر تحميل بقية التطبيق. */
 document.addEventListener("click",function(event){
   var target=event.target;
