@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>منصة متابعة الخطة التشغيلية</title>
-<meta name="theme-color" content="#173b70"><meta name="deployment-version" content="2026-10-04-coordinator-edit-v4"></head>
+<meta name="theme-color" content="#173b70"><meta name="deployment-version" content="2026-11-05-plan-intro-v1"></head>
 <body>
 <div id="loading" hidden>جارٍ التحميل...</div>
 <script>
@@ -129,6 +129,9 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 /* تمييز البرامج المضافة بزر إضافة برنامج في لوحة مدير المدرسة */
 .new-program-name{color:#1d4ed8!important}
 .program-added-date{font-size:11px;color:#64748b;margin-top:4px;font-weight:600}
+
+/* صفحة مقدمة وأهداف الخطة التشغيلية */
+.plan-intro-sections{display:grid;gap:16px}.plan-intro-card{border:1px solid #dce6f2;border-radius:15px;padding:20px;background:#fff}.plan-intro-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}.plan-intro-heading h3{margin:0;color:#123b70;font-size:19px}.plan-intro-index{flex:0 0 32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#eaf3ff;color:#123b70;font-weight:800}.plan-intro-title-label,.plan-intro-content-label{display:grid;gap:8px;width:100%;font-weight:700;color:#334155;font-size:13px}.plan-intro-title-label input,.plan-intro-content-label textarea{width:100%;border:1px solid #d5dfeb;border-radius:10px;padding:12px;background:#fbfdff;color:#172033;font:inherit;line-height:1.9}.plan-intro-content-label textarea{min-height:150px;resize:vertical;white-space:pre-wrap}.plan-intro-content{font-size:15px;line-height:2.05;color:#26364c;white-space:normal;overflow-wrap:anywhere}.plan-intro-empty{color:#94a3b8;font-style:italic}.plan-intro-actions{display:flex;align-items:center;gap:12px;margin-top:12px}.plan-intro-actions small{color:#15803d;font-weight:700}.plan-intro-actions button:disabled{opacity:.65;cursor:wait}@media(max-width:600px){.plan-intro-card{padding:14px}.plan-intro-heading h3{font-size:17px}.plan-intro-content{font-size:14px}}
 </style>
 <div id="login" class="center">
   <div class="login-wrap">
@@ -168,6 +171,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 <div class="shell">
 <aside>
   <button class="nav active" data-page="dashboard">⌂ الرئيسية</button>
+  <button class="nav" data-page="planIntro">📘 مقدمة وأهداف الخطة</button>
   <button class="nav" data-page="programs">▦ البرامج</button>
   <button class="nav" data-page="contacts">📱 أرقام التواصل</button>
   <button class="nav coordinator-only" data-page="evidence">📎 الشواهد والتقارير</button>
@@ -185,6 +189,15 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
  <div class="stats"><div id="statTotal" class="stat clickable-stat" onclick="openStatusPrograms('all')" title="عرض جميع البرامج"><span>إجمالي البرامج</span><b id="total">0</b></div><div id="statDone" class="stat clickable-stat" onclick="openStatusPrograms('تم التنفيذ')" title="عرض البرامج المكتملة"><span>تم التنفيذ</span><b id="done">0</b></div><div id="statDoing" class="stat clickable-stat" onclick="openStatusPrograms('قيد التنفيذ')" title="عرض البرامج قيد التنفيذ"><span>قيد التنفيذ</span><b id="doing">0</b></div><div id="statLate" class="stat clickable-stat" onclick="openStatusPrograms('متأخر')" title="عرض البرامج المتأخرة"><span>متأخر</span><b id="late">0</b></div><div id="statNot" class="stat clickable-stat" onclick="openStatusPrograms('لم ينفذ')" title="عرض البرامج التي لم تنفذ"><span>لم يبدأ</span><b id="notdone">0</b></div><div id="statEvidence" class="stat clickable-stat" onclick="openNoEvidencePrograms()" title="عرض البرامج التي بلا شواهد محفوظة"><span>بلا شواهد محفوظة</span><b id="noEvidence">0</b></div><div id="statAvg" class="stat avg"><span>متوسط الإنجاز</span><b id="avg">0%</b></div></div>
  <div class="charts"><div class="card"><h3>مستوى التنفيذ</h3><canvas id="donut"></canvas></div><div class="card"><h3>متوسط الإنجاز حسب موعد التنفيذ</h3><canvas id="bars"></canvas></div></div>
  <div class="card"><h3>آخر البرامج</h3><div id="latest"></div></div>
+</section>
+
+<section id="planIntro" class="page" hidden>
+ <div class="hero">
+  <div><h2>مقدمة وأهداف الخطة</h2><p>المقدمة والمرتكزات والأهداف الواردة في الخطة التشغيلية للمدرسة.</p></div>
+  <button class="coordinator-only" onclick="addPlanIntroSection()">＋ إضافة عنوان جديد</button>
+ </div>
+ <div id="planIntroNotice" class="hint">يمكن لمنسق الخطة تعديل العناوين والبيانات وحفظ كل قسم بشكل مستقل.</div>
+ <div id="planIntroSections" class="plan-intro-sections"><div class="card">جارٍ تحميل بيانات الخطة...</div></div>
 </section>
 
 <section id="programs" class="page" hidden>
@@ -429,6 +442,7 @@ async function refresh(preferredSid=null){
  await loadPrograms(sid);
  if(me.role==="coordinator"){await loadUsers();await renderSemesters();}
  await loadWhatsAppDirectory();
+ await loadPlanIntroSections();
  renderDashboard();renderPrograms();renderWhatsAppDirectory();fillEvidence();await renderEvidence();renderSchool();renderReports();
 }
 async function loadSemesters(preferredSid=null){
@@ -1618,7 +1632,55 @@ function openProgramFromCard(id){
  modal.hidden=false;
 }
 function closeModal(){modal.hidden=true}
-document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==b.dataset.page);if(b.dataset.page==="evidence")renderEvidence()});
+
+let planIntroSections=[];
+async function loadPlanIntroSections(){
+ const host=document.getElementById("planIntroSections");
+ if(!host)return;
+ const {data,error}=await sb.from("plan_intro_sections").select("*").order("sort_order",{ascending:true});
+ if(error)throw new Error("تعذر تحميل مقدمة وأهداف الخطة: "+error.message);
+ planIntroSections=data||[];
+ renderPlanIntro();
+}
+function renderPlanIntro(){
+ const host=document.getElementById("planIntroSections");
+ if(!host)return;
+ const canEdit=String(me?.role||"").trim().toLowerCase()==="coordinator";
+ const notice=document.getElementById("planIntroNotice");
+ if(notice)notice.textContent=canEdit?"يمكنك تعديل عنوان كل قسم ومحتواه، ثم الضغط على «حفظ القسم». التعديلات تحفظ في قاعدة البيانات وتظهر لجميع المستخدمين.":"عرض محتوى الخطة — التعديل متاح لمنسق الخطة فقط.";
+ host.innerHTML=planIntroSections.map((section,index)=>`
+  <article class="card plan-intro-card" data-section="${escHtml(section.slug)}">
+   <div class="plan-intro-heading">
+    ${canEdit?`<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-${escHtml(section.slug)}" value="${escHtml(section.title||"")}" aria-label="عنوان القسم"></label>`:`<h3>${escHtml(section.title||"")}</h3>`}
+    <span class="plan-intro-index">${index+1}</span>
+   </div>
+   ${canEdit?`<label class="plan-intro-content-label">البيانات والمحتوى<textarea id="planContent-${escHtml(section.slug)}" rows="7" dir="rtl">${escHtml(section.content||"")}</textarea></label><div class="plan-intro-actions"><button onclick="savePlanIntroSection('${escHtml(section.slug)}',this)">حفظ القسم</button><small id="planSaved-${escHtml(section.slug)}" aria-live="polite"></small></div>`:`<div class="plan-intro-content">${section.content?escHtml(section.content).replace(/\n/g,"<br>"):'<span class="plan-intro-empty">لا توجد بيانات مدخلة لهذا العنوان في الملف المرفق.</span>'}</div>`}
+  </article>`).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
+}
+async function savePlanIntroSection(slug,button){
+ if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("التعديل متاح لمنسق الخطة فقط.");return}
+ const titleEl=document.getElementById("planTitle-"+slug),contentEl=document.getElementById("planContent-"+slug),msg=document.getElementById("planSaved-"+slug);
+ const title=(titleEl?.value||"").trim(),content=contentEl?.value||"";
+ if(!title){if(msg)msg.textContent="يرجى كتابة عنوان القسم.";return}
+ const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ الحفظ..."}
+ try{
+  const {error}=await sb.from("plan_intro_sections").update({title,content,updated_at:new Date().toISOString()}).eq("slug",slug);
+  if(error)throw error;
+  const row=planIntroSections.find(x=>x.slug===slug);if(row){row.title=title;row.content=content;row.updated_at=new Date().toISOString()}
+  if(msg)msg.textContent="تم حفظ التعديلات بنجاح.";
+ }catch(e){if(msg)msg.textContent="تعذر الحفظ: "+(e.message||String(e));}
+ finally{if(button){button.disabled=false;button.textContent=old||"حفظ القسم"}}
+}
+async function addPlanIntroSection(){
+ if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("إضافة الأقسام متاحة لمنسق الخطة فقط.");return}
+ const title=prompt("اكتب عنوان القسم الجديد:");if(!title||!title.trim())return;
+ const slug="custom-"+Date.now();
+ const nextOrder=Math.max(0,...planIntroSections.map(x=>Number(x.sort_order)||0))+1;
+ const {error}=await sb.from("plan_intro_sections").insert({slug,title:title.trim(),content:"",sort_order:nextOrder});
+ if(error){alert("تعذرت إضافة القسم: "+error.message);return}
+ await loadPlanIntroSections();
+}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==b.dataset.page);if(b.dataset.page==="evidence")renderEvidence();if(b.dataset.page==="planIntro")loadPlanIntroSections().catch(e=>{const host=document.getElementById("planIntroSections");if(host)host.innerHTML='<div class="card error">'+escHtml(e.message||String(e))+'</div>'})});
 boot().catch(e=>{console.error("boot failed",e);showLogin();const m=document.getElementById("loginMsg");if(m)m.textContent="تعذر تهيئة الدخول: "+(e.message||String(e));});
 </script>
 </body></html>
