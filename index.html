@@ -7,6 +7,24 @@
 <body>
 <div id="loading" hidden>جارٍ التحميل...</div>
 <script>
+/* ربط زر الدخول مبكرًا بطريقة مستقلة عن المعالج inline؛ يعمل حتى لو تأخر تحميل بقية التطبيق. */
+document.addEventListener("click",function(event){
+  var target=event.target;
+  var button=target&&target.closest?target.closest("#loginSubmit"):null;
+  if(!button)return;
+  event.preventDefault();
+  var msg=document.getElementById("loginMsg");
+  if(typeof window.signIn==="function"){
+    Promise.resolve(window.signIn()).catch(function(error){
+      console.error("Login button handler failed",error);
+      if(msg)msg.textContent=error&&error.message?error.message:"تعذر بدء تسجيل الدخول.";
+    });
+  }else if(msg){
+    msg.textContent="تعذر تشغيل وظيفة الدخول؛ أعد تحميل الصفحة، وإذا تكررت المشكلة أرسل هذه الرسالة.";
+  }
+});
+</script>
+<script>
 /* حماية بدء التشغيل: لا تسمح ببقاء شاشة التحميل عالقة إذا تأخر أحد ملفات JavaScript الخارجية. */
 setTimeout(function(){
   var l=document.getElementById("loading"), login=document.getElementById("login");
@@ -170,7 +188,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
       <div class="login-title"><span class="login-icon">🔐</span><div><h2>تسجيل الدخول</h2><small>الوصول حسب الصلاحية المعتمدة</small></div></div>
       <label>البريد الإلكتروني</label><input id="email" type="email" placeholder="أدخل بريدك الإلكتروني" autocomplete="username">
       <label>كلمة المرور</label><div class="password-wrap"><input id="password" type="password" placeholder="أدخل كلمة المرور" autocomplete="current-password"><button type="button" class="password-toggle" onclick="toggleLoginPassword(this)" aria-label="إظهار كلمة المرور">👁️ إظهار</button></div>
-      <button class="login-btn" onclick="signIn()">دخول إلى المنصة</button>
+      <button id="loginSubmit" type="button" class="login-btn">دخول إلى المنصة</button>
       <button class="outline login-signup-btn" onclick="toggleSignup()">إنشاء الحساب من الموقع</button>
       <div id="loginMsg" class="msg"></div>
       <div id="signupBox" class="signup-box" hidden>
@@ -1835,6 +1853,7 @@ async function addPlanIntroSection(){
  await loadPlanIntroSections();
 }
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==b.dataset.page);if(b.dataset.page==="evidence")renderEvidence();if(b.dataset.page==="planIntro")loadPlanIntroSections().catch(e=>{const host=document.getElementById("planIntroSections");if(host)host.innerHTML='<div class="card error">'+escHtml(e.message||String(e))+'</div>'})});
+window.signIn=signIn;
 boot().catch(e=>{console.error("boot failed",e);showLogin();const m=document.getElementById("loginMsg");if(m)m.textContent="تعذر تهيئة الدخول: "+(e.message||String(e));});
 </script>
 </body></html>
