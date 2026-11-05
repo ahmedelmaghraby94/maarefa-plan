@@ -719,7 +719,7 @@ async function printFinalReport(){
  const total=Math.max(1,n),pDone=Math.round(d/total*100),pDoing=Math.round(doing/total*100),pLate=Math.round(late/total*100);
  const w=window.open("","_blank");
  if(!w){alert("يرجى السماح بالنوافذ المنبثقة لإصدار التقرير.");return}
- let planIntroHtml="";try{planIntroHtml=buildPlanCoverHtml(true)+await buildPlanIntroPrintHtml()}catch(e){alert(e?.message||"تعذر تحميل مقدمة وأهداف الخطة للطباعة.");try{w.close()}catch(_){}return}
+ let planIntroHtml="";try{planIntroHtml=buildPlanCoverHtml(true)+await buildPlanIntroPrintHtml()+'<style>@media print{.plan-intro-print-page{min-height:190mm}}</style>'}catch(e){alert(e?.message||"تعذر تحميل مقدمة وأهداف الخطة للطباعة.");try{w.close()}catch(_){}return}
  const donut="conic-gradient(#16a34a 0 "+pDone+"%,#f59e0b "+pDone+"% "+(pDone+pDoing)+"%,#ef4444 "+(pDone+pDoing)+"% "+(pDone+pDoing+pLate)+"%,#94a3b8 "+(pDone+pDoing+pLate)+"% 100%)";
  const statusBars=[
   ["تم التنفيذ",d,"done"],["قيد التنفيذ",doing,"doing"],["متأخر",late,"late"],["لم ينفذ",nd,"not"]
