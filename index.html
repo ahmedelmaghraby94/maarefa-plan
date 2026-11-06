@@ -1836,7 +1836,7 @@ async function loadPlanIntroSections(){
 
 function renderPlanIntroFormattedText(value,ranges){
  const raw=String(value??"");
- const valid=(Array.isArray(ranges)?ranges:[]).map(r=>({start:Number(r.start),end:Number(r.end),size:Math.max(8,Math.min(48,Number(r.size)||18)),color:String(r.color||""),align:String(r.align||"")})).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start&&r.end<=raw.length).sort((a,b)=>a.start-b.start);
+ const valid=(Array.isArray(ranges)?ranges:[]).map(r=>({start:Number(r.start),end:Number(r.end),size:r.size?Math.max(8,Math.min(48,Number(r.size)||18)):null,bold:r.bold===true,color:String(r.color||""),align:String(r.align||"")})).filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.start>=0&&r.end>r.start&&r.end<=raw.length).sort((a,b)=>a.start-b.start);
  let html="",pos=0;
  for(const r of valid){if(r.start<pos)continue;const styles=[];if(r.size)styles.push('font-size:'+r.size+'px');if(r.bold)styles.push('font-weight:800');if(/^#[0-9a-f]{6}$/i.test(r.color))styles.push('color:'+r.color);if(["right","center","left","justify"].includes(r.align))styles.push('display:inline-block;text-align:'+r.align);html+=escHtml(raw.slice(pos,r.start)).replace(/\n/g,"<br>")+'<span style="'+styles.join(";")+'">'+escHtml(raw.slice(r.start,r.end)).replace(/\n/g,"<br>")+'</span>';pos=r.end}
  return html+escHtml(raw.slice(pos)).replace(/\n/g,"<br>");
@@ -1873,32 +1873,50 @@ function showPlanIntroFormatPopup(field){
  const range=sel.getRangeAt(0).cloneRange(),offsets=planRichOffsets(field,range);if(offsets.end<=offsets.start)return;
  planIntroActiveField=field;field.dataset.pendingStart=offsets.start;field.dataset.pendingEnd=offsets.end;
  let popup=document.getElementById("plan-intro-format-popup");
- if(!popup){popup=document.createElement("div");popup.id="plan-intro-format-popup";popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم الافتراضي</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label><button type="button" data-act="bold" title="تبديل الخط العريض" style="font-weight:900;padding:6px 12px">B عريض</button><button type="button" data-act="undo" title="التراجع عن آخر تنسيق" style="padding:6px 12px">↶ تراجع</button>';document.body.appendChild(popup);popup.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",()=>applyPlanIntroFormatChoice(sel)));popup.querySelectorAll("button").forEach(btn=>{btn.addEventListener("mousedown",e=>e.preventDefault());btn.addEventListener("click",()=>btn.dataset.act==="undo"?undoPlanIntroFormatChoice():applyPlanIntroFormatChoice(btn))});}
+ if(!popup){popup=document.createElement("div");popup.id="plan-intro-format-popup";popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم الافتراضي</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label><button type="button" data-act="bold" title="تبديل الخط العريض" style="font-weight:900;padding:6px 12px">B عريض</button><button type="button" data-act="undo" title="التراجع عن آخر تنسيق" style="padding:6px 12px">↶ تراجع</button>';document.body.appendChild(popup);
+ popup.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",()=>applyPlanIntroFormatChoice(sel)));
+ popup.querySelectorAll("button").forEach(btn=>{btn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation()});btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(btn.dataset.act==="undo")undoPlanIntroFormatChoice();else applyPlanIntroFormatChoice(btn)})});
+ }
  const rect=range.getBoundingClientRect(),left=Math.max(8,Math.min(window.innerWidth-300,rect.left)),top=Math.max(8,Math.min(window.innerHeight-100,rect.bottom+8));
- popup.querySelectorAll("select").forEach(x=>x.value="");popup.style.cssText='position:fixed;z-index:999999;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;left:'+left+'px;top:'+top+'px';
- field.dataset.pendingHtml=range.toString();
+ popup.querySelectorAll("select").forEach(x=>x.value="");
+ popup.style.cssText='position:fixed;z-index:2147483000;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;pointer-events:auto;left:'+left+'px;top:'+top+'px';
 }
 function applyPlanIntroFormatChoice(control){
  const field=planIntroActiveField;if(!field)return;
- const start=Number(field.dataset.pendingStart),end=Number(field.dataset.pendingEnd);if(end<=start)return;
- const action=control.dataset.act,old=JSON.parse(field.dataset.fontRanges||"[]"),next=[];let value=control.value;if(action==="bold"){const selected=old.filter(r=>r.start<end&&r.end>start);value=selected.length&&selected.every(r=>r.bold===true)?"":"true"}field.dataset.undoSnapshot=JSON.stringify({html:field.innerHTML,ranges:field.dataset.fontRanges||"[]",textAlign:field.style.textAlign||""});
+ const start=Number(field.dataset.pendingStart),end=Number(field.dataset.pendingEnd);if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return;
+ const action=control.dataset.act;if(!["size","color","align","bold"].includes(action))return;
+ const old=JSON.parse(field.dataset.fontRanges||"[]"),next=[];
+ let value=action==="bold"?"true":control.value;
+ const selected=old.filter(r=>Number(r.start)<end&&Number(r.end)>start);
+ if(action==="bold")value=selected.length&&selected.every(r=>r.bold===true)?"":"true";
+ const history=JSON.parse(field.dataset.undoHistory||"[]");
+ history.push({html:field.innerHTML,ranges:field.dataset.fontRanges||"[]",textAlign:field.style.textAlign||""});
+ field.dataset.undoHistory=JSON.stringify(history.slice(-30));
  old.forEach(r=>{
-  if(r.end<=start||r.start>=end){next.push(r);return}
-  if(r.start<start)next.push({...r,end:start});
-  const middle={...r,start:Math.max(start,r.start),end:Math.min(end,r.end)};
-  if(action==="size")delete middle.size;if(action==="color")delete middle.color;if(action==="align")delete middle.align;if(action==="bold")delete middle.bold;
+  const rs=Number(r.start),re=Number(r.end);
+  if(re<=start||rs>=end){next.push(r);return}
+  if(rs<start)next.push({...r,end:start});
+  const middle={...r,start:Math.max(start,rs),end:Math.min(end,re)};
+  delete middle[action];
   if(Object.keys(middle).some(k=>!["start","end"].includes(k)))next.push(middle);
-  if(r.end>end)next.push({...r,start:end});
+  if(re>end)next.push({...r,start:end});
  });
  if(value){const entry={start,end};if(action==="size")entry.size=Number(value);if(action==="color")entry.color=value;if(action==="align")entry.align=value;if(action==="bold")entry.bold=true;next.push(entry);}
- next.sort((x,y)=>x.start-y.start);field.dataset.fontRanges=JSON.stringify(next);
- const fullText=planRichText(field),walker=document.createTreeWalker(field,NodeFilter.SHOW_TEXT);let pos=0,first=null,last=null;
- while(walker.nextNode()){const n=walker.currentNode,len=n.nodeValue.length;if(!first&&start>=pos&&start<=pos+len)first={node:n,offset:start-pos};if(end>=pos&&end<=pos+len){last={node:n,offset:end-pos};break}pos+=len;}
- if(first&&last){try{const range=document.createRange();range.setStart(first.node,first.offset);range.setEnd(last.node,last.offset);const span=document.createElement("span");if(action==="size")span.style.fontSize=value+"px";if(action==="color")span.style.color=value;if(action==="bold")span.style.fontWeight="800";if(action==="align")field.style.textAlign=value||"";span.appendChild(range.extractContents());range.insertNode(span);const sel=window.getSelection();sel.removeAllRanges();const after=document.createRange();after.selectNodeContents(span);sel.addRange(after)}catch(e){}}
+ next.sort((x,y)=>x.start-y.start);
+ field.dataset.fontRanges=JSON.stringify(next);
+ if(action==="align")field.style.textAlign=value||"";
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
  field.focus({preventScroll:true});
 }
-function undoPlanIntroFormatChoice(){const field=planIntroActiveField;if(!field)return;let snap;try{snap=JSON.parse(field.dataset.undoSnapshot||"null")}catch(e){}if(!snap)return;field.innerHTML=snap.html;field.dataset.fontRanges=snap.ranges;field.style.textAlign=snap.textAlign;delete field.dataset.undoSnapshot;const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";field.focus({preventScroll:true})}
+function undoPlanIntroFormatChoice(){
+ const field=planIntroActiveField;if(!field)return;
+ let history=[];try{history=JSON.parse(field.dataset.undoHistory||"[]")}catch(e){}
+ if(!history.length)return;
+ const snap=history.pop();field.dataset.undoHistory=JSON.stringify(history);
+ field.innerHTML=snap.html;field.dataset.fontRanges=snap.ranges;field.style.textAlign=snap.textAlign;
+ const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
+ field.focus({preventScroll:true});
+}
 function installPlanIntroSelectionWatcher(){
  if(window.__planIntroSelectionWatcher)return;window.__planIntroSelectionWatcher=true;
  const detect=()=>{const active=document.activeElement;if(active?.matches?.("#planIntroSections .plan-rich-text"))showPlanIntroFormatPopup(active)};
