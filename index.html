@@ -668,7 +668,7 @@ async function printSelectedEvidence(){
 
 
 
-async async function buildPlanCoverHtml(landscape=false){
+async function buildPlanCoverHtml(landscape=false){
  const activeCoverSemester=currentSemester();
  const semesterTitle=activeCoverSemester?[activeCoverSemester.name,activeCoverSemester.academic_year].filter(Boolean).join(" — "):"الخطة التشغيلية";
  const director="مدير المدرسة — أ- وديع بخاري";
