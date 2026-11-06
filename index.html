@@ -1838,8 +1838,9 @@ function renderPlanIntroBlock(block,index,canEdit){
   const swotKinds=swotHeaders.map((h,c)=>({header:String(h||""),col:c,kind:/القوة/.test(String(h||""))?"strength":/الضعف/.test(String(h||""))?"weakness":/الفرص/.test(String(h||""))?"opportunities":/التهديد/.test(String(h||""))?"threats":""})).filter(x=>x.kind);
   if(swotKinds.length===2){
    const swotNames={strength:"نقاط القوة",weakness:"نقاط الضعف",opportunities:"الفرص",threats:"التهديدات"};
-   const cards=swotKinds.map(item=>'<div class="plan-intro-visual swot-'+item.kind+'"><h4>'+swotNames[item.kind]+'</h4><div class="visual-copy">'+(block.rows||[]).map((row,r)=>{const value=row[item.col];if(value==null||String(value).trim()==="")return "";return canEdit?'<div class="swot-item"><textarea class="plan-block-cell swot-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+item.col+'">'+esc(value)+'</textarea></div>':'<div class="swot-item">'+esc(value)+'</div>'}).join("")+'</div></div>').join("");
-   return '<section class="plan-intro-block">'+title+'<div class="plan-intro-swot">'+cards+'</div></section>';
+   const cards=swotKinds.map(item=>'<div class="plan-intro-visual swot-'+item.kind+'"><h4>'+swotNames[item.kind]+'</h4><div class="visual-copy">'+(block.rows||[]).map((row,r)=>{const value=row[item.col];if(value==null||String(value).trim()==="")return "";const size=block.cellSizes&&block.cellSizes[r]&&block.cellSizes[r][item.col]||{};const font=Number(size.fontSize||block.fontSize||10);const style='font-size:'+font+'px!important;'+(size.width?'width:'+Number(size.width)+'px!important;':'')+(size.height?'height:'+Number(size.height)+'px!important;min-height:'+Number(size.height)+'px!important;':'')+'resize:both!important;';return canEdit?'<div class="swot-item"><textarea class="plan-block-cell swot-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+item.col+'" style="'+style+'">'+esc(value)+'</textarea></div>':'<div class="swot-item" style="font-size:'+font+'px">'+esc(value)+'</div>'}).join("")+'</div></div>').join("");
+   const swotTools=canEdit?'<div class="plan-table-tools"><label>حجم خط العبارات <input class="swot-font" type="number" min="8" max="36" value="'+Number(block.fontSize||10)+'" onchange="setPlanSwotStyle(this)"> px</label><small>اسحب زاوية كل خلية لتغيير حجمها، ثم احفظ القسم.</small></div>':"";
+   return '<section class="plan-intro-block">'+title+swotTools+'<div class="plan-intro-swot">'+cards+'</div></section>';
   }
   const numberCols=(block.headers||[]).map((h,c)=>/^م\\.?$/.test(String(h||"").trim())?c:-1).filter(c=>c>=0);
   const colgroup='<colgroup>'+(block.headers||[]).map((h,c)=>'<col data-col="'+c+'" style="'+(block.columnWidths&&block.columnWidths[c]?'width:'+Number(block.columnWidths[c])+'px;':(numberCols.includes(c)?'width:58px;':''))+'">').join("")+'</colgroup>';
@@ -1861,8 +1862,9 @@ function renderPlanIntroBlock(block,index,canEdit){
  }
  if(block.type==="paragraph")return '<section class="plan-intro-block">'+title+(canEdit?'<textarea class="plan-intro-paragraph" data-block="'+index+'">'+esc(block.text||"") +'</textarea>':'<div class="plan-intro-content">'+esc(block.text||"").replace(/\n/g,"<br>")+'</div>')+'</section>';
  if(block.type==="list"){
-  const items=(block.items||[]).map((item,r)=>'<div class="plan-intro-list-item">'+(canEdit?'<textarea class="plan-block-item" data-block="'+index+'" data-row="'+r+'">'+esc(item)+'</textarea>':esc(item))+'</div>').join("");
-  return '<section class="plan-intro-block">'+title+'<div class="plan-intro-list">'+items+'</div></section>';
+  const items=(block.items||[]).map((item,r)=>{const size=block.itemSizes&&block.itemSizes[r]||{};const style=(size.width?'width:'+Number(size.width)+'px;':'')+(size.height?'height:'+Number(size.height)+'px;':'')+'font-size:'+Number(size.fontSize||block.fontSize||18)+'px;';return '<div class="plan-intro-list-item" style="'+style+'">'+(canEdit?'<textarea class="plan-block-item" data-block="'+index+'" data-row="'+r+'" style="'+style+'resize:both;min-height:48px">'+esc(item)+'</textarea>':'<div style="'+style+'">'+esc(item)+'</div>')+'</div>'}).join("");
+  const listTools=canEdit?'<div class="plan-table-tools"><label>حجم خط القضايا <input class="plan-list-font" type="number" min="10" max="36" value="'+Number(block.fontSize||18)+'" onchange="setPlanListStyle(this)"> px</label><small>اسحب زاوية القضية لتغيير عرضها وارتفاعها، ثم احفظ القسم.</small></div>':"";
+  return '<section class="plan-intro-block">'+title+listTools+'<div class="plan-intro-list">'+items+'</div></section>';
  }
  return "";
 }
@@ -1877,7 +1879,7 @@ function collectPlanIntroBlocks(article,section){
  article.querySelectorAll(".plan-intro-table").forEach(table=>{const bi=Number(table.querySelector(".plan-block-header")?.dataset.block);if(!Number.isFinite(bi))return;blocks[bi].columnWidths=Array.from(table.querySelectorAll("colgroup col")).map(col=>Math.round(col.getBoundingClientRect().width))});
  article.querySelectorAll(".plan-card-title").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].title=el.value});
  article.querySelectorAll(".plan-card-copy").forEach(el=>{blocks[Number(el.dataset.block)].cards[Number(el.dataset.card)].text=el.value});
- article.querySelectorAll(".plan-block-item").forEach(el=>{blocks[Number(el.dataset.block)].items[Number(el.dataset.row)]=el.value});
+ article.querySelectorAll(".plan-block-item").forEach(el=>{const bi=Number(el.dataset.block),ri=Number(el.dataset.row);blocks[bi].items[ri]=el.value;blocks[bi].itemSizes=blocks[bi].itemSizes||[];blocks[bi].itemSizes[ri]={width:Math.round(parseFloat(el.style.width)||el.getBoundingClientRect().width),height:Math.round(parseFloat(el.style.height)||el.getBoundingClientRect().height),fontSize:parseFloat(el.style.fontSize)||null}});
  article.querySelectorAll(".plan-radial-center-text").forEach(el=>{blocks[Number(el.dataset.block)].center=el.value});
  article.querySelectorAll(".plan-radial-node-text").forEach(el=>{blocks[Number(el.dataset.block)].nodes[Number(el.dataset.node)]=el.value});
  return blocks;
@@ -1923,6 +1925,8 @@ function setPlanTableStyle(control){
  const font=Math.max(10,Math.min(36,Number(control.closest(".plan-intro-block").querySelector(".plan-table-font")?.value)||17));
  table.querySelectorAll(".plan-block-cell").forEach(el=>{el.style.textAlign=align;el.style.fontSize=font+"px"});
 }
+function setPlanSwotStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(8,Math.min(36,Number(block.querySelector(".swot-font")?.value)||10));block.querySelectorAll(".swot-cell").forEach(el=>el.style.setProperty("font-size",font+"px","important"));}
+function setPlanListStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(10,Math.min(36,Number(block.querySelector(".plan-list-font")?.value)||18));block.querySelectorAll(".plan-block-item").forEach(el=>el.style.fontSize=font+"px");}
 function refreshPlanIntroAfterBlockEdit(article,section,blocks){section.blocks=blocks;renderPlanIntro();}
 function addPlanTableRow(button){
  const article=button.closest("[data-section]"),slug=article?.dataset.section,section=planIntroSections.find(x=>x.slug===slug);if(!section)return;
