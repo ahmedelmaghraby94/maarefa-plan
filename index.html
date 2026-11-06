@@ -157,7 +157,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 .new-program-name{color:#1d4ed8!important}
 .program-added-date{font-size:11px;color:#64748b;margin-top:4px;font-weight:600}
 
-.plan-rich-editor{display:grid;gap:7px;margin:8px 0}#plan-intro-format-popup label{display:flex;align-items:center;gap:4px;font-weight:700;color:#243b5a}.plan-rich-live-preview{padding:9px;margin-top:5px;border:1px dashed #8aa9ce;border-radius:8px;background:#fff;line-height:1.9;white-space:normal;overflow-wrap:anywhere}.plan-rich-live-preview[hidden]{display:none!important}#plan-intro-format-popup select{max-width:110px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;color:#172033}.plan-rich-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px;background:#eaf1fb;border:1px solid #c7d8ed;border-radius:9px}.plan-rich-tools label{font-weight:700;color:#23446f}.plan-rich-tools select{padding:5px;border:1px solid #b7cce7;border-radius:6px}.plan-rich-tools small,.plan-rich-status{font-size:12px;color:#475569}.plan-rich-text{width:100%;box-sizing:border-box;line-height:1.9}
+.plan-rich-editor{display:grid;gap:7px;margin:8px 0}#plan-intro-format-popup label{display:flex;align-items:center;gap:4px;font-weight:700;color:#243b5a}#plan-intro-format-popup select{max-width:110px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;color:#172033}.plan-rich-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px;background:#eaf1fb;border:1px solid #c7d8ed;border-radius:9px}.plan-rich-tools label{font-weight:700;color:#23446f}.plan-rich-tools select{padding:5px;border:1px solid #b7cce7;border-radius:6px}.plan-rich-tools small,.plan-rich-status{font-size:12px;color:#475569}.plan-rich-text{width:100%;box-sizing:border-box;line-height:1.9}
 /* صفحة مقدمة وأهداف الخطة التشغيلية */
 .plan-intro-sections{display:grid;gap:16px}.plan-intro-card{border:1px solid #c7d8ed;border-radius:15px;padding:20px;background:#f3f7fd}.plan-intro-heading{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px;padding:15px 18px;border:1px solid #b7cce7;border-radius:12px;background:#dceafe;text-align:center;min-height:76px}.plan-intro-heading h3{margin:0;color:#123b70;font-size:24px;font-weight:800;text-align:center;flex:1}.plan-intro-index{flex:0 0 32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#123b70;font-weight:800}.plan-intro-title-label{display:grid;gap:6px;flex:1;max-width:100%;font-weight:700;color:#23446f;font-size:13px;text-align:center}.plan-intro-title-label input{width:100%;border:1px solid #b7cce7;border-radius:10px;padding:12px;background:#fff;color:#123b70;font:800 23px Tahoma,Arial,sans-serif;line-height:1.7;text-align:center}.plan-intro-content-label{display:grid;gap:8px;width:100%;font-weight:700;color:#334155;font-size:13px}.plan-intro-content-label textarea{width:100%;border:1px solid #d5dfeb;border-radius:10px;padding:12px;background:#fff;color:#172033;font:inherit;line-height:1.9;min-height:150px;resize:vertical;white-space:pre-wrap}.plan-intro-content{font-size:15px;line-height:2.05;color:#26364c;white-space:normal;overflow-wrap:anywhere}.plan-intro-empty{color:#94a3b8;font-style:italic}.plan-intro-actions{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}.plan-intro-actions small{color:#15803d;font-weight:700}.plan-intro-actions button:disabled{opacity:.65;cursor:wait}.plan-intro-actions .plan-intro-delete{background:#b91c1c;color:#fff}.plan-intro-actions .plan-intro-delete:hover{background:#991b1b}@media(max-width:600px){.plan-intro-card{padding:14px}.plan-intro-heading{padding:12px;gap:8px}.plan-intro-heading h3{font-size:21px}.plan-intro-title-label input{font-size:19px}.plan-intro-content{font-size:14px}}
 
@@ -1869,24 +1869,23 @@ function applyPlanIntroFormatChoice(control){
  });
  if(value){const entry={start,end};if(action==="size")entry.size=Number(value);if(action==="color")entry.color=value;if(action==="align")entry.align=value;next.push(entry);}
  next.sort((x,y)=>x.start-y.start);field.dataset.fontRanges=JSON.stringify(next);
- const preview=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-live-preview");
- if(preview){preview.hidden=false;preview.innerHTML='<span style="font-weight:700;color:#166534">معاينة مباشرة:</span><div class="plan-intro-content" style="margin-top:5px">'+renderPlanIntroFormattedText(field.value,next)+'</div>';}
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
- const status=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-status");if(status)status.textContent="تم تطبيق التنسيق فورًا على التحديد؛ احفظ القسم لتثبيته.";
+ const status=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-status");if(status)status.textContent="تم تطبيق التنسيق على الجزء المحدد؛ احفظ القسم لتثبيته.";
+ field.focus({preventScroll:true});
 }
 function installPlanIntroSelectionWatcher(){
  if(window.__planIntroSelectionWatcher)return;window.__planIntroSelectionWatcher=true;
  let lastField=null;
- const detect=()=>{const active=document.activeElement;if(active?.classList?.contains("plan-rich-text")){lastField=active;if(active.selectionEnd>active.selectionStart)showPlanIntroFormatPopup(active);}};
+ const detect=()=>{const active=document.activeElement;if(active?.matches?.("#planIntroSections .plan-rich-text")){lastField=active;if(active.selectionEnd>active.selectionStart)showPlanIntroFormatPopup(active);}};
  document.addEventListener("selectionchange",()=>setTimeout(detect,40),{passive:true});
  document.addEventListener("pointerup",()=>setTimeout(detect,40),{passive:true});
  document.addEventListener("touchend",()=>setTimeout(detect,80),{passive:true});
- document.addEventListener("keyup",e=>{if(e.target?.classList?.contains("plan-rich-text"))setTimeout(detect,30);});
+ document.addEventListener("keyup",e=>{if(e.target?.matches?.("#planIntroSections .plan-rich-text"))setTimeout(detect,30);});
  document.addEventListener("scroll",()=>{const p=document.getElementById("plan-intro-format-popup");if(p)p.style.display="none";},true);
 }
 function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
  const esc=(v)=>escHtml(v==null?"":String(v));
- const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<input class="plan-block-title" data-block="'+index+'" value="'+esc(block.title)+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">':esc(block.title))+'</div>':"";
+ const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<input class="plan-block-title plan-rich-text" data-block="'+index+'" data-font-ranges="'+esc(JSON.stringify(block.titleFontRanges||[]))+'" value="'+esc(block.title)+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">':esc(block.title))+'</div>':"";
  if(block.type==="table"){
   const swotHeaders=block.headers||[];
   const swotKinds=swotHeaders.map((h,c)=>({header:String(h||""),col:c,kind:/القوة/.test(String(h||""))?"strength":/الضعف/.test(String(h||""))?"weakness":/الفرص/.test(String(h||""))?"opportunities":/التهديد/.test(String(h||""))?"threats":""})).filter(x=>x.kind);
@@ -1927,7 +1926,7 @@ function collectPlanIntroBlocks(article,section){
  installPlanIntroSelectionWatcher();
  if(document.getElementById("plan-intro-format-popup"))document.getElementById("plan-intro-format-popup").style.display="none";
  const blocks=JSON.parse(JSON.stringify(section.blocks||[]));
- article.querySelectorAll(".plan-block-title").forEach(el=>{blocks[Number(el.dataset.block)].title=el.value});
+ article.querySelectorAll(".plan-block-title").forEach(el=>{const b=blocks[Number(el.dataset.block)];b.title=el.value;b.titleFontRanges=JSON.parse(el.dataset.fontRanges||"[]")});
  article.querySelectorAll(".plan-table-align").forEach(el=>{blocks[Number(el.dataset.block)].textAlign=el.value});
  article.querySelectorAll(".plan-table-font").forEach(el=>{blocks[Number(el.dataset.block)].fontSize=Math.max(10,Math.min(36,Number(el.value)||17))});
  article.querySelectorAll(".swot-heading-font").forEach(el=>{const table=el.closest(".plan-intro-block")?.querySelector(".swot-cell");if(table){const bi=Number(table.dataset.block);blocks[bi].swotHeaderFontSize=Math.max(10,Math.min(36,Number(el.value)||26));}});
@@ -1975,7 +1974,7 @@ function renderPlanIntro(){
    (canEdit?'<label class="plan-intro-content-label">البيانات والمحتوى<textarea id="planContent-'+escHtml(section.slug)+'" rows="7" dir="rtl">'+escHtml(section.content||"")+'</textarea></label>':'<div class="plan-intro-content" style="'+contentStyle+'">'+(section.content?escHtml(section.content).replace(/\n/g,"<br>"):'<span class="plan-intro-empty">لا توجد بيانات مدخلة لهذا العنوان في الملف المرفق.</span>')+'</div>');
   const addData=canEdit?'<button type="button" class="outline plan-add-data" onclick="addPlanIntroData(\''+escHtml(section.slug)+'\')">+ إضافة بيانات للقسم</button>':"";
   return '<article class="card plan-intro-card" data-section="'+escHtml(section.slug)+'"><div class="plan-intro-heading"><span class="plan-intro-index">'+(index+1)+'</span>'+
-   (canEdit?'<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-'+escHtml(section.slug)+'" value="'+escHtml(section.title||"")+'" aria-label="عنوان القسم"></label>':'<h3>'+escHtml(section.title||"")+'</h3>')+
+   (canEdit?'<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-'+escHtml(section.slug)+'" class="plan-rich-text" data-font-ranges="'+escHtml(JSON.stringify(section.titleFontRanges||[]))+'" value="'+escHtml(section.title||"")+'" aria-label="عنوان القسم"></label>':'<h3>'+renderPlanIntroFormattedText(section.title||"",section.titleFontRanges)+'</h3>')+
    '</div>'+sectionTools+content+addData+(canEdit?'<div class="plan-intro-actions"><button onclick="savePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حذف القسم</button><small id="planSaved-'+escHtml(section.slug)+'" aria-live="polite"></small></div>':'')+'</article>';
  }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
  enablePlanIntroColumnResizing();
@@ -2024,14 +2023,14 @@ async function savePlanIntroSection(slug,button){
  const article=Array.from(document.querySelectorAll("[data-section]")).find(x=>x.dataset.section===slug);
  const section=planIntroSections.find(x=>x.slug===slug);
  const titleEl=document.getElementById("planTitle-"+slug),contentEl=document.getElementById("planContent-"+slug),msg=document.getElementById("planSaved-"+slug);
- const title=(titleEl?.value||"").trim(),content=contentEl?.value??section?.content??"";
+ const title=(titleEl?.value||"").trim(),content=contentEl?.value??section?.content??"";if(titleEl)section.titleFontRanges=JSON.parse(titleEl.dataset.fontRanges||"[]");
  if(!title){if(msg)msg.textContent="يرجى كتابة عنوان القسم.";return}
  let blocks=article&&Array.isArray(section?.blocks)&&section.blocks.length?collectPlanIntroBlocks(article,section):section?.blocks||null;
  const sectionFont=Math.max(10,Math.min(36,Number(article?.querySelector(".plan-section-font")?.value)||17)),sectionAlign=article?.querySelector(".plan-section-align")?.value||"right";
  if(!blocks||!blocks.length){blocks=[{type:"paragraph",text:content,fontSize:sectionFont,textAlign:sectionAlign}]}else{blocks=blocks.map(block=>({...block,fontSize:sectionFont,textAlign:sectionAlign}))}
  const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ الحفظ..."}
  try{
-  const update={title,content,updated_at:new Date().toISOString()};if(blocks)update.blocks=blocks;
+  const update={title,content,title_font_ranges:section?.titleFontRanges||[],updated_at:new Date().toISOString()};if(blocks)update.blocks=blocks;
   const {error}=await sb.from("plan_intro_sections").update(update).eq("slug",slug);if(error)throw error;
   if(section){section.title=title;section.content=content;if(blocks)section.blocks=blocks;section.updated_at=new Date().toISOString()}
   if(msg)msg.textContent="تم حفظ التعديلات بنجاح.";
