@@ -157,7 +157,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}@media(max-width:700px){aside{pa
 .new-program-name{color:#1d4ed8!important}
 .program-added-date{font-size:11px;color:#64748b;margin-top:4px;font-weight:600}
 
-.plan-rich-editor{display:grid;gap:7px;margin:8px 0}#plan-intro-format-popup label{display:flex;align-items:center;gap:4px;font-weight:700;color:#243b5a}#plan-intro-format-popup select{max-width:110px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;color:#172033}.plan-rich-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px;background:#eaf1fb;border:1px solid #c7d8ed;border-radius:9px}.plan-rich-tools label{font-weight:700;color:#23446f}.plan-rich-tools select{padding:5px;border:1px solid #b7cce7;border-radius:6px}.plan-rich-tools small,.plan-rich-status{font-size:12px;color:#475569}.plan-rich-text{width:100%;box-sizing:border-box;line-height:1.9}
+.plan-rich-editor{display:grid;gap:7px;margin:8px 0}#plan-intro-format-popup label{display:flex;align-items:center;gap:4px;font-weight:700;color:#243b5a}.plan-rich-live-preview{padding:9px;margin-top:5px;border:1px dashed #8aa9ce;border-radius:8px;background:#fff;line-height:1.9;white-space:normal;overflow-wrap:anywhere}.plan-rich-live-preview[hidden]{display:none!important}#plan-intro-format-popup select{max-width:110px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;color:#172033}.plan-rich-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px;background:#eaf1fb;border:1px solid #c7d8ed;border-radius:9px}.plan-rich-tools label{font-weight:700;color:#23446f}.plan-rich-tools select{padding:5px;border:1px solid #b7cce7;border-radius:6px}.plan-rich-tools small,.plan-rich-status{font-size:12px;color:#475569}.plan-rich-text{width:100%;box-sizing:border-box;line-height:1.9}
 /* صفحة مقدمة وأهداف الخطة التشغيلية */
 .plan-intro-sections{display:grid;gap:16px}.plan-intro-card{border:1px solid #c7d8ed;border-radius:15px;padding:20px;background:#f3f7fd}.plan-intro-heading{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px;padding:15px 18px;border:1px solid #b7cce7;border-radius:12px;background:#dceafe;text-align:center;min-height:76px}.plan-intro-heading h3{margin:0;color:#123b70;font-size:24px;font-weight:800;text-align:center;flex:1}.plan-intro-index{flex:0 0 32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#123b70;font-weight:800}.plan-intro-title-label{display:grid;gap:6px;flex:1;max-width:100%;font-weight:700;color:#23446f;font-size:13px;text-align:center}.plan-intro-title-label input{width:100%;border:1px solid #b7cce7;border-radius:10px;padding:12px;background:#fff;color:#123b70;font:800 23px Tahoma,Arial,sans-serif;line-height:1.7;text-align:center}.plan-intro-content-label{display:grid;gap:8px;width:100%;font-weight:700;color:#334155;font-size:13px}.plan-intro-content-label textarea{width:100%;border:1px solid #d5dfeb;border-radius:10px;padding:12px;background:#fff;color:#172033;font:inherit;line-height:1.9;min-height:150px;resize:vertical;white-space:pre-wrap}.plan-intro-content{font-size:15px;line-height:2.05;color:#26364c;white-space:normal;overflow-wrap:anywhere}.plan-intro-empty{color:#94a3b8;font-style:italic}.plan-intro-actions{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}.plan-intro-actions small{color:#15803d;font-weight:700}.plan-intro-actions button:disabled{opacity:.65;cursor:wait}.plan-intro-actions .plan-intro-delete{background:#b91c1c;color:#fff}.plan-intro-actions .plan-intro-delete:hover{background:#991b1b}@media(max-width:600px){.plan-intro-card{padding:14px}.plan-intro-heading{padding:12px;gap:8px}.plan-intro-heading h3{font-size:21px}.plan-intro-title-label input{font-size:19px}.plan-intro-content{font-size:14px}}
 
@@ -1843,26 +1843,46 @@ function renderPlanIntroFormattedText(value,ranges){
 function planIntroRichTools(){return '<div class="plan-rich-tools" hidden></div>'}
 let planIntroActiveField=null;
 function showPlanIntroFormatPopup(field){
+ if(!field||!field.classList.contains("plan-rich-text"))return;
  const start=field.selectionStart,end=field.selectionEnd;if(start===end)return;
  planIntroActiveField=field;field.dataset.pendingStart=start;field.dataset.pendingEnd=end;
  let popup=document.getElementById("plan-intro-format-popup");
  if(!popup){popup=document.createElement("div");popup.id="plan-intro-format-popup";popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label>';document.body.appendChild(popup);popup.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",()=>applyPlanIntroFormatChoice(sel)));}
  const rect=field.getBoundingClientRect(),style=getComputedStyle(field),lineHeight=parseFloat(style.lineHeight)||30;
  const before=field.value.slice(0,start),line=(before.match(/\n/g)||[]).length,lastLine=before.slice(before.lastIndexOf("\n")+1);
- const approxChar=Math.max(7,parseFloat(style.fontSize)*.55),left=Math.min(window.innerWidth-300,Math.max(8,rect.left+Math.min(rect.width-260,lastLine.length*approxChar)));
- const top=Math.min(window.innerHeight-90,Math.max(8,rect.top+Math.min(rect.height-35,line*lineHeight-field.scrollTop+lineHeight)));
- popup.style.cssText='position:fixed;z-index:99999;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(95vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;left:'+left+'px;top:'+top+'px';
+ const approxChar=Math.max(7,parseFloat(style.fontSize)*.55),left=Math.max(8,Math.min(window.innerWidth-300,rect.left+Math.min(Math.max(0,rect.width-260),lastLine.length*approxChar)));
+ const top=Math.max(8,Math.min(window.innerHeight-90,rect.top+Math.min(Math.max(0,rect.height-35),line*lineHeight-field.scrollTop+lineHeight)));
+ popup.style.cssText='position:fixed;z-index:999999;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;left:'+left+'px;top:'+top+'px';
  popup.querySelectorAll("select").forEach(x=>x.value="");popup.style.display="flex";
 }
 function applyPlanIntroFormatChoice(control){
  const field=planIntroActiveField;if(!field)return;
  const start=Number(field.dataset.pendingStart),end=Number(field.dataset.pendingEnd);if(end<=start)return;
  const action=control.dataset.act,value=control.value,old=JSON.parse(field.dataset.fontRanges||"[]"),next=[];
- old.forEach(r=>{if(r.end<=start||r.start>=end)next.push(r);else{if(r.start<start)next.push({...r,end:start});if(r.end>end)next.push({...r,start:end})}});
- const entry={start,end};if(action==="size")entry.size=Number(value);if(action==="color")entry.color=value;if(action==="align")entry.align=value;
- if(value)next.push(entry);next.sort((a,b)=>a.start-b.start);field.dataset.fontRanges=JSON.stringify(next);
+ old.forEach(r=>{
+  if(r.end<=start||r.start>=end){next.push(r);return}
+  if(r.start<start)next.push({...r,end:start});
+  const middle={...r,start:Math.max(start,r.start),end:Math.min(end,r.end)};
+  if(action==="size")delete middle.size;if(action==="color")delete middle.color;if(action==="align")delete middle.align;
+  if(Object.keys(middle).some(k=>!["start","end"].includes(k)))next.push(middle);
+  if(r.end>end)next.push({...r,start:end});
+ });
+ if(value){const entry={start,end};if(action==="size")entry.size=Number(value);if(action==="color")entry.color=value;if(action==="align")entry.align=value;next.push(entry);}
+ next.sort((x,y)=>x.start-y.start);field.dataset.fontRanges=JSON.stringify(next);
+ const preview=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-live-preview");
+ if(preview){preview.hidden=false;preview.innerHTML='<span style="font-weight:700;color:#166534">معاينة مباشرة:</span><div class="plan-intro-content" style="margin-top:5px">'+renderPlanIntroFormattedText(field.value,next)+'</div>';}
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
- const status=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-status");if(status)status.textContent="تم تطبيق التنسيق على العبارة المحددة؛ احفظ القسم لتثبيته.";
+ const status=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-status");if(status)status.textContent="تم تطبيق التنسيق فورًا على التحديد؛ احفظ القسم لتثبيته.";
+}
+function installPlanIntroSelectionWatcher(){
+ if(window.__planIntroSelectionWatcher)return;window.__planIntroSelectionWatcher=true;
+ let lastField=null;
+ const detect=()=>{const active=document.activeElement;if(active?.classList?.contains("plan-rich-text")){lastField=active;if(active.selectionEnd>active.selectionStart)showPlanIntroFormatPopup(active);}};
+ document.addEventListener("selectionchange",()=>setTimeout(detect,40),{passive:true});
+ document.addEventListener("pointerup",()=>setTimeout(detect,40),{passive:true});
+ document.addEventListener("touchend",()=>setTimeout(detect,80),{passive:true});
+ document.addEventListener("keyup",e=>{if(e.target?.classList?.contains("plan-rich-text"))setTimeout(detect,30);});
+ document.addEventListener("scroll",()=>{const p=document.getElementById("plan-intro-format-popup");if(p)p.style.display="none";},true);
 }
 function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
  const esc=(v)=>escHtml(v==null?"":String(v));
@@ -1895,7 +1915,7 @@ function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
   const nodeHtml=(block.nodes||[]).map((node,n)=>'<div class="plan-radial-node '+positions[n]+'">'+(canEdit?'<textarea class="plan-radial-node-text" data-block="'+index+'" data-node="'+n+'">'+esc(node)+'</textarea>':esc(node).replace(/\n/g,"<br>"))+'</div>').join("");
   return '<section class="plan-intro-block">'+title+'<div class="plan-radial-diagram"><div class="plan-radial-center">'+(canEdit?'<textarea class="plan-radial-center-text" data-block="'+index+'">'+esc(block.center||"مجالات الأداء المدرسي")+'</textarea>':esc(block.center||"مجالات الأداء المدرسي"))+'</div>'+nodeHtml+'</div></section>';
  }
- if(block.type==="paragraph")return '<section class="plan-intro-block">'+title+(canEdit?'<div class="plan-rich-editor">'+planIntroRichTools()+'<textarea class="plan-intro-paragraph plan-rich-text" onmouseup="showPlanIntroFormatPopup(this)" onkeyup="showPlanIntroFormatPopup(this)" data-block="'+index+'" data-font-ranges="'+esc(JSON.stringify(block.fontRanges||[]))+'">'+esc(block.text||"")+'</textarea><small class="plan-rich-status"></small></div>':'<div class="plan-intro-content">'+renderPlanIntroFormattedText(block.text||"",block.fontRanges)+'</div>')+'</section>';
+ if(block.type==="paragraph")return '<section class="plan-intro-block">'+title+(canEdit?'<div class="plan-rich-editor">'+planIntroRichTools()+'<textarea class="plan-intro-paragraph plan-rich-text" onmouseup="showPlanIntroFormatPopup(this)" onkeyup="showPlanIntroFormatPopup(this)" data-block="'+index+'" data-font-ranges="'+esc(JSON.stringify(block.fontRanges||[]))+'">'+esc(block.text||"")+'</textarea><small class="plan-rich-status"></small><div class="plan-rich-live-preview" hidden></div></div>':'<div class="plan-intro-content">'+renderPlanIntroFormattedText(block.text||"",block.fontRanges)+'</div>')+'</section>';
  if(block.type==="list"){
   const isPriorityIssues=/القضايا\\s*ذات\\s*الأولوية/.test(String(block.title||"")+" "+String(sectionTitle||""));
   const items=(block.items||[]).map((item,r)=>{const size=block.itemSizes&&block.itemSizes[r]||{};const style=(size.width?'width:'+Number(size.width)+'px;':'')+(size.height?'height:'+Number(size.height)+'px;':'')+'font-size:'+Number(size.fontSize||block.fontSize||18)+'px;';const ranges=(block.itemFontRanges||[])[r]||[];return '<div class="plan-intro-list-item'+(isPriorityIssues?' plan-priority-step':'')+'" style="'+style+'">'+(canEdit?'<div class="plan-rich-editor">'+planIntroRichTools()+'<textarea class="plan-block-item plan-rich-text" onmouseup="showPlanIntroFormatPopup(this)" onkeyup="showPlanIntroFormatPopup(this)" data-block="'+index+'" data-row="'+r+'" data-font-ranges="'+esc(JSON.stringify(ranges))+'" style="'+style+'resize:both;min-height:48px">'+esc(item)+'</textarea><small class="plan-rich-status"></small></div>':'<div style="'+style+'">'+renderPlanIntroFormattedText(item,ranges)+'</div>')+'</div>'}).join("");
@@ -1904,6 +1924,7 @@ function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
  return "";
 }
 function collectPlanIntroBlocks(article,section){
+ installPlanIntroSelectionWatcher();
  if(document.getElementById("plan-intro-format-popup"))document.getElementById("plan-intro-format-popup").style.display="none";
  const blocks=JSON.parse(JSON.stringify(section.blocks||[]));
  article.querySelectorAll(".plan-block-title").forEach(el=>{blocks[Number(el.dataset.block)].title=el.value});
