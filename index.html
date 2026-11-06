@@ -1917,6 +1917,7 @@ function applyPlanIntroFormatChoice(control){
  if(action==="align")field.style.textAlign="";
  field.innerHTML=renderPlanIntroFormattedText(raw,next);
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
+ schedulePlanIntroAutoSave(field.closest("[data-section]"),500);
  field.focus({preventScroll:true});
 }
 function undoPlanIntroFormatChoice(){
@@ -1946,7 +1947,7 @@ function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
   if(swotKinds.length===2){
    const swotNames={strength:"نقاط القوة",weakness:"نقاط الضعف",opportunities:"الفرص",threats:"التهديدات"};
    const swotHeadingFont=Math.max(10,Math.min(36,Number(block.swotHeaderFontSize)||26));
-   const legacySwot=block.swotFontSizeVersion!==2,swotBaseFont=Math.max(legacySwot?16:12,Math.min(36,Number(block.fontSize)||16));
+   const legacySwot=block.swotFontSizeVersion!==2,swotBaseFont=Math.max(legacySwot?16:12,Math.min(36,Number(block.swotFontSize||block.fontSize)||16));
    const cards=swotKinds.map(item=>'<div class="plan-intro-visual swot-'+item.kind+'"><h4 style="font-size:'+swotHeadingFont+'px!important">'+swotNames[item.kind]+'</h4><div class="visual-copy">'+(block.rows||[]).map((row,r)=>{const value=row[item.col];if(value==null||String(value).trim()==="")return "";const size=block.cellSizes&&block.cellSizes[r]&&block.cellSizes[r][item.col]||{};const savedFont=Number(size.fontSize||swotBaseFont),font=Math.max(legacySwot?16:12,Math.min(36,savedFont||16));const style='font-size:'+font+'px!important;'+(size.width?'width:'+Number(size.width)+'px!important;':'')+(size.height?'height:'+Number(size.height)+'px!important;min-height:'+Number(size.height)+'px!important;':'')+'resize:both!important;';return canEdit?'<div class="swot-item"><textarea class="plan-block-cell swot-cell" data-block="'+index+'" data-row="'+r+'" data-col="'+item.col+'" style="'+style+'">'+esc(value)+'</textarea></div>':'<div class="swot-item" style="font-size:'+font+'px">'+esc(value)+'</div>'}).join("")+'</div></div>').join("");
    const swotTools=canEdit?'<div class="plan-table-tools"><label>حجم خط العناوين <input class="swot-heading-font" type="number" min="10" max="36" value="'+swotHeadingFont+'" onchange="setPlanSwotHeadingStyle(this)"> px</label><label>حجم خط العبارات <input class="swot-font" type="number" min="12" max="36" value="'+swotBaseFont+'" onchange="setPlanSwotStyle(this)"> px</label><small>اسحب زاوية كل خلية لتغيير حجمها، ثم احفظ القسم.</small></div>':"";
    return '<section class="plan-intro-block">'+title+swotTools+'<div class="plan-intro-swot">'+cards+'</div></section>';
@@ -2035,18 +2036,25 @@ function renderPlanIntro(){
  }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
  enablePlanIntroColumnResizing();
  upgradePlanIntroRichEditors();installPlanIntroSelectionWatcher();
+ if(!host.dataset.autoSaveReady){
+  host.dataset.autoSaveReady="1";
+  host.addEventListener("input",e=>{const article=e.target.closest("[data-section]");if(article)schedulePlanIntroAutoSave(article,1300)});
+  host.addEventListener("change",e=>{const article=e.target.closest("[data-section]");if(article)schedulePlanIntroAutoSave(article,350)});
+  host.addEventListener("pointerup",e=>{const article=e.target.closest("[data-section]");if(article)schedulePlanIntroAutoSave(article,500)});
+ }
 }
-function previewPlanSectionStyle(control){const article=control.closest("[data-section]");if(!article)return;const font=Math.max(10,Math.min(36,Number(article.querySelector(".plan-section-font")?.value)||17)),align=article.querySelector(".plan-section-align")?.value||"right";const content=article.querySelector(".plan-intro-structured,.plan-intro-content");if(content){content.style.fontSize=font+"px";content.style.textAlign=align;content.querySelectorAll(".plan-intro-visual,.visual-copy,.plan-radial-node,.plan-radial-center,.plan-intro-list-item,.plan-intro-content,.plan-card-copy,.plan-intro-paragraph,.plan-rich-text,.plan-radial-node-text,.plan-radial-center-text,.plan-card-title").forEach(el=>{if(!el.style.getPropertyValue("font-size"))el.style.fontSize="inherit";el.style.textAlign=align})}}
+function previewPlanSectionStyle(control){const article=control.closest("[data-section]");if(!article)return;const font=Math.max(10,Math.min(36,Number(article.querySelector(".plan-section-font")?.value)||17)),align=article.querySelector(".plan-section-align")?.value||"right";const content=article.querySelector(".plan-intro-structured,.plan-intro-content");if(content){content.style.fontSize=font+"px";content.style.textAlign=align;content.querySelectorAll(".plan-intro-visual,.visual-copy,.plan-radial-node,.plan-radial-center,.plan-intro-list-item,.plan-intro-content,.plan-card-copy,.plan-intro-paragraph,.plan-rich-text,.plan-radial-node-text,.plan-radial-center-text,.plan-card-title").forEach(el=>{if(!el.style.getPropertyValue("font-size"))el.style.fontSize="inherit";el.style.textAlign=align})}schedulePlanIntroAutoSave(article,500)}
 function setPlanTableStyle(control){
- const table=control.closest(".plan-intro-block")?.querySelector(".plan-intro-table");if(!table)return;
- const align=control.closest(".plan-intro-block").querySelector(".plan-table-align")?.value||"right";
- const font=Math.max(10,Math.min(36,Number(control.closest(".plan-intro-block").querySelector(".plan-table-font")?.value)||17));
+ const block=control.closest(".plan-intro-block"),table=block?.querySelector(".plan-intro-table");if(!table)return;
+ const align=block.querySelector(".plan-table-align")?.value||"right";
+ const font=Math.max(10,Math.min(36,Number(block.querySelector(".plan-table-font")?.value)||17));
  table.querySelectorAll(".plan-block-cell").forEach(el=>{el.style.textAlign=align;el.style.fontSize=font+"px"});
+ schedulePlanIntroAutoSave(control.closest("[data-section]"),500);
 }
-function setPlanSwotHeadingStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(10,Math.min(36,Number(block.querySelector(".swot-heading-font")?.value)||22));block.querySelectorAll(".plan-intro-visual h4").forEach(el=>el.style.setProperty("font-size",font+"px","important"));}
-function setPlanSwotStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(8,Math.min(36,Number(block.querySelector(".swot-font")?.value)||10));block.querySelectorAll(".swot-cell").forEach(el=>el.style.setProperty("font-size",font+"px","important"));}
+function setPlanSwotHeadingStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(10,Math.min(36,Number(block.querySelector(".swot-heading-font")?.value)||22));block.querySelectorAll(".plan-intro-visual h4").forEach(el=>el.style.setProperty("font-size",font+"px","important"));schedulePlanIntroAutoSave(control.closest("[data-section]"),500);}
+function setPlanSwotStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(12,Math.min(36,Number(block.querySelector(".swot-font")?.value)||16));block.querySelectorAll(".swot-cell").forEach(el=>el.style.setProperty("font-size",font+"px","important"));schedulePlanIntroAutoSave(control.closest("[data-section]"),500);}
 function setPlanListStyle(control){const block=control.closest(".plan-intro-block"),font=Math.max(10,Math.min(36,Number(block.querySelector(".plan-list-font")?.value)||18));block.querySelectorAll(".plan-block-item").forEach(el=>el.style.fontSize=font+"px");}
-function refreshPlanIntroAfterBlockEdit(article,section,blocks){section.blocks=blocks;renderPlanIntro();}
+function refreshPlanIntroAfterBlockEdit(article,section,blocks){section.blocks=blocks;renderPlanIntro();schedulePlanIntroAutoSave(document.querySelector('[data-section="'+section.slug+'"]'),500);}
 function addPlanTableRow(button){
  const article=button.closest("[data-section]"),slug=article?.dataset.section,section=planIntroSections.find(x=>x.slug===slug);if(!section)return;
  const blocks=collectPlanIntroBlocks(article,section),bi=Number(button.closest(".plan-intro-block").querySelector(".plan-intro-table")?.dataset.block);if(!blocks[bi])return;
@@ -2075,8 +2083,19 @@ async function deletePlanIntroSection(slug,button){
   planIntroSections=planIntroSections.filter(x=>x.slug!==slug);renderPlanIntro();
  }catch(e){alert("تعذر حذف القسم: "+(e.message||String(e)));if(button){button.disabled=false;button.textContent=old||"حذف القسم"}}
 }
+const planIntroAutoSaveTimers=window.__planIntroAutoSaveTimers||(window.__planIntroAutoSaveTimers={});
+function schedulePlanIntroAutoSave(article,delay=1000){
+ const slug=article?.dataset?.section;if(!slug||String(me?.role||"").trim().toLowerCase()!=="coordinator")return;
+ clearTimeout(planIntroAutoSaveTimers[slug]);
+ planIntroAutoSaveTimers[slug]=setTimeout(()=>{
+  delete planIntroAutoSaveTimers[slug];
+  const saveButton=article.querySelector(".plan-intro-actions button:not(.plan-intro-delete)");
+  savePlanIntroSection(slug,saveButton||null);
+ },delay);
+}
 async function savePlanIntroSection(slug,button){
  if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("التعديل متاح لمنسق الخطة فقط.");return}
+ clearTimeout(planIntroAutoSaveTimers[slug]);delete planIntroAutoSaveTimers[slug];
  const article=Array.from(document.querySelectorAll("[data-section]")).find(x=>x.dataset.section===slug);
  const section=planIntroSections.find(x=>x.slug===slug);
  const titleEl=document.getElementById("planTitle-"+slug),contentEl=document.getElementById("planContent-"+slug),msg=document.getElementById("planSaved-"+slug);
