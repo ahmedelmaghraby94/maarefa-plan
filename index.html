@@ -1840,15 +1840,21 @@ function renderPlanIntroFormattedText(value,ranges){
  for(const r of valid){if(r.start<pos)continue;html+=escHtml(raw.slice(pos,r.start)).replace(/\n/g,"<br>")+'<span style="font-size:'+r.size+'px!important">'+escHtml(raw.slice(r.start,r.end)).replace(/\n/g,"<br>")+'</span>';pos=r.end}
  return html+escHtml(raw.slice(pos)).replace(/\n/g,"<br>");
 }
-function planIntroRichTools(){return '<div class="plan-rich-tools"><label>حجم الخط <select class="plan-rich-size"><option>12</option><option>14</option><option>16</option><option selected>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select> px</label><button type="button" class="outline" onclick="applyPlanIntroFont(this)">تطبيق على النص المظلل فقط</button><small>ظلّل الكلمة أو العبارة داخل مربع النص أولاً.</small></div>'}
-function applyPlanIntroFont(button){
- const field=button.closest(".plan-rich-editor")?.querySelector(".plan-rich-text");if(!field)return;
- const start=field.selectionStart,end=field.selectionEnd;if(start===end){alert("ظلّل الكلمة أو العبارة التي تريد تغيير حجمها أولاً.");return}
- const old=JSON.parse(field.dataset.fontRanges||"[]"),size=Number(button.closest(".plan-rich-editor").querySelector(".plan-rich-size").value)||18;
- const next=[];
+function planIntroRichTools(){return '<div class="plan-rich-tools"><label>حجم الخط <select class="plan-rich-size" onmousedown="rememberPlanIntroSelection(this)" onfocus="rememberPlanIntroSelection(this)" onchange="applyPlanIntroFont(this)"><option>12</option><option>14</option><option>16</option><option selected>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select> px</label><small>ظلّل الكلمة أو العبارة ثم اختر الحجم مباشرة.</small></div><div class="plan-rich-preview" hidden></div>'}
+function rememberPlanIntroSelection(select){
+ const field=select.closest(".plan-rich-editor")?.querySelector(".plan-rich-text");if(!field)return;
+ field.dataset.pendingStart=field.selectionStart;field.dataset.pendingEnd=field.selectionEnd;
+}
+function applyPlanIntroFont(select){
+ const editor=select.closest(".plan-rich-editor"),field=editor?.querySelector(".plan-rich-text");if(!field)return;
+ const start=Number(field.dataset.pendingStart??field.selectionStart),end=Number(field.dataset.pendingEnd??field.selectionEnd);
+ if(start===end){const status=editor.querySelector(".plan-rich-status");if(status)status.textContent="ظلّل الكلمة أو العبارة أولاً ثم اختر حجم الخط.";return}
+ const old=JSON.parse(field.dataset.fontRanges||"[]"),size=Number(select.value)||18,next=[];
  old.forEach(r=>{if(r.end<=start||r.start>=end)next.push(r);else{if(r.start<start)next.push({...r,end:start});if(r.end>end)next.push({...r,start:end})}});
  next.push({start,end,size});next.sort((a,b)=>a.start-b.start);field.dataset.fontRanges=JSON.stringify(next);
- const status=button.closest(".plan-rich-editor").querySelector(".plan-rich-status");if(status)status.textContent="تم تطبيق الحجم على التحديد؛ اضغط حفظ القسم لتثبيته.";
+ const preview=editor.querySelector(".plan-rich-preview");if(preview){preview.hidden=false;preview.innerHTML='<strong>معاينة التنسيق:</strong><div class="plan-intro-content" style="margin-top:6px">'+renderPlanIntroFormattedText(field.value,next)+'</div>'}
+ const status=editor.querySelector(".plan-rich-status");if(status)status.textContent="تغيّر حجم النص المحدد. سيظهر التنسيق في الصفحة والطباعة بعد حفظ القسم.";
+ field.dataset.pendingStart=start;field.dataset.pendingEnd=end;
 }
 function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
  const esc=(v)=>escHtml(v==null?"":String(v));
