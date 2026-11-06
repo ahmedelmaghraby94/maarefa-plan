@@ -1871,21 +1871,26 @@ function showPlanIntroFormatPopup(field){
  if(!field||!field.matches?.("#planIntroSections .plan-rich-text"))return;
  const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed||!field.contains(sel.anchorNode)||!field.contains(sel.focusNode))return;
  const range=sel.getRangeAt(0).cloneRange(),offsets=planRichOffsets(field,range);if(offsets.end<=offsets.start)return;
- planIntroActiveField=field;field.dataset.pendingStart=offsets.start;field.dataset.pendingEnd=offsets.end;
+ planIntroActiveField=field;field.dataset.pendingStart=String(Math.min(offsets.start,offsets.end));field.dataset.pendingEnd=String(Math.max(offsets.start,offsets.end));
  let popup=document.getElementById("plan-intro-format-popup");
- if(!popup){popup=document.createElement("div");popup.id="plan-intro-format-popup";popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم الافتراضي</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label><button type="button" data-act="bold" title="تبديل الخط العريض" style="font-weight:900;padding:6px 12px">B عريض</button><button type="button" data-act="undo" title="التراجع عن آخر تنسيق" style="padding:6px 12px">↶ تراجع</button>';document.body.appendChild(popup);
- popup.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",()=>applyPlanIntroFormatChoice(sel)));
- popup.querySelectorAll("button").forEach(btn=>{btn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation()});btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(btn.dataset.act==="undo")undoPlanIntroFormatChoice();else applyPlanIntroFormatChoice(btn)})});
+ if(!popup){
+  popup=document.createElement("div");popup.id="plan-intro-format-popup";
+  popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم الافتراضي</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label><button type="button" data-act="bold" title="تبديل الخط العريض">B عريض</button><button type="button" data-act="undo" title="التراجع عن آخر تنسيق">↶ تراجع</button>';
+  document.body.appendChild(popup);
+  popup.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;e.preventDefault();e.stopPropagation();if(btn.dataset.act==="undo")undoPlanIntroFormatChoice();else applyPlanIntroFormatChoice(btn)});
+  popup.addEventListener("change",e=>{const control=e.target.closest("select[data-act]");if(control)applyPlanIntroFormatChoice(control)});
+  popup.addEventListener("pointerdown",e=>e.stopPropagation());
  }
- const rect=range.getBoundingClientRect(),left=Math.max(8,Math.min(window.innerWidth-300,rect.left)),top=Math.max(8,Math.min(window.innerHeight-100,rect.bottom+8));
+ const rect=range.getBoundingClientRect(),left=Math.max(8,Math.min(window.innerWidth-Math.min(520,popup.offsetWidth||300)-8,rect.left)),top=Math.max(8,Math.min(window.innerHeight-90,rect.bottom+8));
+ popup.style.cssText='position:fixed;z-index:2147483000;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;pointer-events:auto;touch-action:manipulation;left:'+left+'px;top:'+top+'px';
  popup.querySelectorAll("select").forEach(x=>x.value="");
- popup.style.cssText='position:fixed;z-index:2147483000;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;pointer-events:auto;left:'+left+'px;top:'+top+'px';
 }
 function applyPlanIntroFormatChoice(control){
- const field=planIntroActiveField;if(!field)return;
- const start=Number(field.dataset.pendingStart),end=Number(field.dataset.pendingEnd);if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return;
+ const field=planIntroActiveField;if(!field||!field.isConnected)return;
+ const start=Number(field.dataset.pendingStart),end=Number(field.dataset.pendingEnd);
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return;
  const action=control.dataset.act;if(!["size","color","align","bold"].includes(action))return;
- const old=JSON.parse(field.dataset.fontRanges||"[]"),next=[];
+ const raw=planRichText(field),old=JSON.parse(field.dataset.fontRanges||"[]"),next=[];
  let value=action==="bold"?"true":control.value;
  const selected=old.filter(r=>Number(r.start)<end&&Number(r.end)>start);
  if(action==="bold")value=selected.length&&selected.every(r=>r.bold===true)?"":"true";
@@ -1896,8 +1901,7 @@ function applyPlanIntroFormatChoice(control){
   const rs=Number(r.start),re=Number(r.end);
   if(re<=start||rs>=end){next.push(r);return}
   if(rs<start)next.push({...r,end:start});
-  const middle={...r,start:Math.max(start,rs),end:Math.min(end,re)};
-  delete middle[action];
+  const middle={...r,start:Math.max(start,rs),end:Math.min(end,re)};delete middle[action];
   if(Object.keys(middle).some(k=>!["start","end"].includes(k)))next.push(middle);
   if(re>end)next.push({...r,start:end});
  });
@@ -1905,11 +1909,13 @@ function applyPlanIntroFormatChoice(control){
  next.sort((x,y)=>x.start-y.start);
  field.dataset.fontRanges=JSON.stringify(next);
  if(action==="align")field.style.textAlign=value||"";
+ // Render the selected formatting immediately in the editable field, not only in print preview.
+ field.innerHTML=renderPlanIntroFormattedText(raw,next);
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
  field.focus({preventScroll:true});
 }
 function undoPlanIntroFormatChoice(){
- const field=planIntroActiveField;if(!field)return;
+ const field=planIntroActiveField;if(!field||!field.isConnected)return;
  let history=[];try{history=JSON.parse(field.dataset.undoHistory||"[]")}catch(e){}
  if(!history.length)return;
  const snap=history.pop();field.dataset.undoHistory=JSON.stringify(history);
