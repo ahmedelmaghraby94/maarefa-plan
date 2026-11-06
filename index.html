@@ -1890,26 +1890,31 @@ function applyPlanIntroFormatChoice(control){
  const start=Number(field.dataset.pendingStart),end=Number(field.dataset.pendingEnd);
  if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return;
  const action=control.dataset.act;if(!["size","color","align","bold"].includes(action))return;
- const raw=planRichText(field),old=JSON.parse(field.dataset.fontRanges||"[]"),next=[];
- let value=action==="bold"?"true":control.value;
+ const raw=planRichText(field);let old=[];try{old=JSON.parse(field.dataset.fontRanges||"[]")}catch(e){}
+ old=old.filter(r=>Number.isFinite(Number(r.start))&&Number.isFinite(Number(r.end))&&Number(r.end)>Number(r.start)&&Number(r.start)>=0&&Number(r.end)<=raw.length);
  const selected=old.filter(r=>Number(r.start)<end&&Number(r.end)>start);
- if(action==="bold")value=selected.length&&selected.every(r=>r.bold===true)?"":"true";
+ let value=action==="bold"?(selected.length&&selected.every(r=>r.bold===true)?"":"true"):control.value;
+ if(action==="size"&&value)value=String(Math.max(8,Math.min(48,Number(value)||18)));
+ if(action==="align"&&value&&!["right","center","left","justify"].includes(value))return;
+ if(action==="color"&&value&&!/^#[0-9a-f]{6}$/i.test(value))return;
  const history=JSON.parse(field.dataset.undoHistory||"[]");
  history.push({html:field.innerHTML,ranges:field.dataset.fontRanges||"[]",textAlign:field.style.textAlign||""});
  field.dataset.undoHistory=JSON.stringify(history.slice(-30));
- old.forEach(r=>{
-  const rs=Number(r.start),re=Number(r.end);
-  if(re<=start||rs>=end){next.push(r);return}
-  if(rs<start)next.push({...r,end:start});
-  const middle={...r,start:Math.max(start,rs),end:Math.min(end,re)};delete middle[action];
-  if(Object.keys(middle).some(k=>!["start","end"].includes(k)))next.push(middle);
-  if(re>end)next.push({...r,start:end});
- });
- if(value){const entry={start,end};if(action==="size")entry.size=Number(value);if(action==="color")entry.color=value;if(action==="align")entry.align=value;if(action==="bold")entry.bold=true;next.push(entry);}
- next.sort((x,y)=>x.start-y.start);
+ const points=new Set([start,end]);
+ old.forEach(r=>{points.add(Math.max(0,Math.min(raw.length,Number(r.start))));points.add(Math.max(0,Math.min(raw.length,Number(r.end))))});
+ const edges=Array.from(points).filter(Number.isFinite).sort((a,b)=>a-b),next=[];
+ for(let i=0;i<edges.length-1;i++){
+  const a=edges[i],b=edges[i+1];if(b<=a)continue;
+  const covering=old.filter(r=>Number(r.start)<=a&&Number(r.end)>=b);
+  const attrs={};covering.forEach(r=>{["size","bold","color","align"].forEach(k=>{if(r[k]!==undefined&&r[k]!==null&&r[k]!=="")attrs[k]=r[k]})});
+  if(a>=start&&b<=end){if(value)attrs[action]=action==="bold"?true:(action==="size"?Number(value):value);else delete attrs[action]}
+  if(Object.keys(attrs).length){
+   const prev=next[next.length-1],same=prev&&Number(prev.end)===a&&["size","bold","color","align"].every(k=>(prev[k]??null)===(attrs[k]??null));
+   if(same)prev.end=b;else next.push({start:a,end:b,...attrs});
+  }
+ }
  field.dataset.fontRanges=JSON.stringify(next);
- if(action==="align")field.style.textAlign=value||"";
- // Render the selected formatting immediately in the editable field, not only in print preview.
+ if(action==="align")field.style.textAlign="";
  field.innerHTML=renderPlanIntroFormattedText(raw,next);
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
  field.focus({preventScroll:true});
