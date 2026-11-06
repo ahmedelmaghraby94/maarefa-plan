@@ -2023,7 +2023,7 @@ function renderPlanIntro(){
  host.innerHTML=planIntroSections.map((section,index)=>{
   const blocks=Array.isArray(section.blocks)?section.blocks:[];
   const structured=blocks.length>0;
-  const baseFont=Math.max(10,Math.min(36,Number(blocks[0]?.fontSize)||17)),baseAlign=blocks[0]?.textAlign||"right";
+  const baseFont=Math.max(10,Math.min(36,Number(blocks[0]?.sectionFontSize??blocks[0]?.fontSize)||17)),baseAlign=blocks[0]?.sectionTextAlign||blocks[0]?.textAlign||"right";
   const sectionTools=canEdit?'<div class="plan-table-tools plan-section-tools"><label>حجم خط القسم بالكامل <input class="plan-section-font" type="number" min="10" max="36" value="'+baseFont+'" onchange="previewPlanSectionStyle(this)"> px</label><label>محاذاة بيانات القسم <select class="plan-section-align" onchange="previewPlanSectionStyle(this)"><option value="right" '+(baseAlign==="right"?"selected":"")+'">يمين</option><option value="center" '+(baseAlign==="center"?"selected":"")+'">توسيط</option><option value="left" '+(baseAlign==="left"?"selected":"")+'">يسار</option></select></label><small>تُحفظ إعدادات هذا القسم بشكل مستقل عن بقية الأقسام.</small></div>':"";
   const contentStyle="font-size:"+baseFont+"px;text-align:"+baseAlign+";";
   const content=structured?'<div class="plan-intro-structured" style="'+contentStyle+'">'+blocks.map((x,i)=>renderPlanIntroBlock(x,i,canEdit,section.title||"")).join("")+'</div>':
@@ -2035,8 +2035,9 @@ function renderPlanIntro(){
  }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
  enablePlanIntroColumnResizing();
  upgradePlanIntroRichEditors();installPlanIntroSelectionWatcher();
+ host.querySelectorAll("[data-section]").forEach(article=>{const control=article.querySelector(".plan-section-font");if(control)previewPlanSectionStyle(control)});
 }
-function previewPlanSectionStyle(control){const article=control.closest("[data-section]");if(!article)return;const font=Math.max(10,Math.min(36,Number(article.querySelector(".plan-section-font")?.value)||17)),align=article.querySelector(".plan-section-align")?.value||"right";const content=article.querySelector(".plan-intro-structured,.plan-intro-content");if(content){content.style.fontSize=font+"px";content.style.textAlign=align;content.querySelectorAll(".plan-intro-visual,.visual-copy,.plan-radial-node,.plan-radial-center,.plan-intro-list-item,.plan-intro-content,.plan-block-cell,.plan-card-copy").forEach(el=>{el.style.fontSize=font+"px";el.style.textAlign=align})}}
+function previewPlanSectionStyle(control){const article=control.closest("[data-section]");if(!article)return;const font=Math.max(10,Math.min(36,Number(article.querySelector(".plan-section-font")?.value)||17)),align=article.querySelector(".plan-section-align")?.value||"right";const content=article.querySelector(".plan-intro-structured,.plan-intro-content");if(content){content.style.fontSize=font+"px";content.style.textAlign=align;content.querySelectorAll(".plan-intro-visual,.visual-copy,.plan-radial-node,.plan-radial-center,.plan-intro-list-item,.plan-intro-content,.plan-block-cell,.plan-card-copy,.plan-intro-paragraph,.plan-block-item,.plan-rich-text,.plan-radial-node-text,.plan-radial-center-text,.plan-card-title").forEach(el=>{el.style.setProperty("font-size",font+"px","important");el.style.textAlign=align})}}
 function setPlanTableStyle(control){
  const table=control.closest(".plan-intro-block")?.querySelector(".plan-intro-table");if(!table)return;
  const align=control.closest(".plan-intro-block").querySelector(".plan-table-align")?.value||"right";
@@ -2084,7 +2085,7 @@ async function savePlanIntroSection(slug,button){
  if(!title){if(msg)msg.textContent="يرجى كتابة عنوان القسم.";return}
  let blocks=article&&Array.isArray(section?.blocks)&&section.blocks.length?collectPlanIntroBlocks(article,section):section?.blocks||null;
  const sectionFont=Math.max(10,Math.min(36,Number(article?.querySelector(".plan-section-font")?.value)||17)),sectionAlign=article?.querySelector(".plan-section-align")?.value||"right";
- if(!blocks||!blocks.length){blocks=[{type:"paragraph",text:content,fontSize:sectionFont,textAlign:sectionAlign}]}else{blocks=blocks.map(block=>({...block,fontSize:sectionFont,textAlign:sectionAlign}))}
+ if(!blocks||!blocks.length){blocks=[{type:"paragraph",text:content,sectionFontSize:sectionFont,sectionTextAlign:sectionAlign}]}else{blocks=blocks.map(block=>({...block,sectionFontSize:sectionFont,sectionTextAlign:sectionAlign}))}
  const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ الحفظ..."}
  try{
   if(!blocks||!blocks.length)blocks=[{type:"paragraph",text:content}];if(blocks[0])blocks[0].sectionTitleFontRanges=section?.titleFontRanges||[];const update={title,content,updated_at:new Date().toISOString()};update.blocks=blocks;
