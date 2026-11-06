@@ -2122,7 +2122,17 @@ async function addPlanIntroSection(){
  if(error){alert("تعذرت إضافة القسم: "+error.message);return}
  await loadPlanIntroSections();
 }
-document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==b.dataset.page);if(b.dataset.page==="evidence")renderEvidence();if(b.dataset.page==="planIntro")loadPlanIntroSections().catch(e=>{const host=document.getElementById("planIntroSections");if(host)host.innerHTML='<div class="card error">'+escHtml(e.message||String(e))+'</div>'})});
+document.querySelectorAll(".nav").forEach(b=>b.onclick=async()=>{
+ const activePage=document.querySelector(".nav.active")?.dataset.page;
+ if(activePage==="planIntro"){
+  const pending=Object.keys(planIntroAutoSaveTimers);
+  if(pending.length)await Promise.all(pending.map(slug=>savePlanIntroSection(slug,null)));
+ }
+ document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+ document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==b.dataset.page);
+ if(b.dataset.page==="evidence")renderEvidence();
+ if(b.dataset.page==="planIntro")loadPlanIntroSections().catch(e=>{const host=document.getElementById("planIntroSections");if(host)host.innerHTML='<div class="card error">'+escHtml(e.message||String(e))+'</div>'});
+});
 boot().catch(e=>{console.error("boot failed",e);showLogin();const m=document.getElementById("loginMsg");if(m)m.textContent="تعذر تهيئة الدخول: "+(e.message||String(e));});
 </script>
 </body></html>
