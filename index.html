@@ -1881,8 +1881,11 @@ function showPlanIntroFormatPopup(field){
   popup.addEventListener("change",e=>{const control=e.target.closest("select[data-act]");if(control)applyPlanIntroFormatChoice(control)});
   popup.addEventListener("pointerdown",e=>e.stopPropagation());
  }
- const rect=range.getBoundingClientRect(),left=Math.max(8,Math.min(window.innerWidth-Math.min(520,popup.offsetWidth||300)-8,rect.left)),top=Math.max(8,Math.min(window.innerHeight-90,rect.bottom+8));
- popup.style.cssText='position:fixed;z-index:2147483000;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;pointer-events:auto;touch-action:manipulation;left:'+left+'px;top:'+top+'px';
+ const rect=range.getBoundingClientRect();
+ const mobile=window.matchMedia("(max-width: 700px)").matches;
+ const left=mobile?8:Math.max(8,Math.min(window.innerWidth-Math.min(520,popup.offsetWidth||300)-8,rect.left));
+ const top=mobile?"auto":Math.max(8,Math.min(window.innerHeight-90,rect.bottom+8));
+ popup.style.cssText='position:fixed;z-index:2147483000;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:10px;background:#fff;border:2px solid #2866a6;border-radius:12px;box-shadow:0 5px 22px #0f274455;font:14px Tahoma;direction:rtl;pointer-events:auto;touch-action:manipulation;left:'+left+'px;right:'+(mobile?'8px':'auto')+';top:'+top+';bottom:'+(mobile?'max(12px, env(safe-area-inset-bottom))':'auto')+';width:'+(mobile?'auto':'max-content')+';' ;
  popup.querySelectorAll("select").forEach(x=>x.value="");
 }
 function applyPlanIntroFormatChoice(control){
