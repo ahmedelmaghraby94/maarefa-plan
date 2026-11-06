@@ -1992,7 +1992,7 @@ function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
 }
 function collectPlanIntroBlocks(article,section){
  installPlanIntroSelectionWatcher();
- if(document.getElementById("plan-intro-format-popup"))document.getElementById("plan-intro-format-popup").style.display="none";
+ // اترك شريط التنسيق ظاهرًا أثناء الحفظ التلقائي حتى يتمكن المستخدم من اختيار أحد خياراته.
  const blocks=JSON.parse(JSON.stringify(section.blocks||[]));
  article.querySelectorAll(".plan-block-title").forEach(el=>{const b=blocks[Number(el.dataset.block)];b.title=el.value;b.titleFontRanges=JSON.parse(el.dataset.fontRanges||"[]")});
  article.querySelectorAll(".plan-table-align").forEach(el=>{blocks[Number(el.dataset.block)].textAlign=el.value});
