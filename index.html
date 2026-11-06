@@ -735,14 +735,14 @@ async function buildPlanIntroPrintHtml(pageHeightMm=281){
  const sections=data||[];
  const html=sections.map(section=>{
   const blocks=Array.isArray(section.blocks)?section.blocks:[];
-  const body=blocks.length?blocks.map(block=>{
+  const body=blocks.length?'<div class="intro-section-body" style="font-size:'+Math.max(10,Math.min(36,Number(blocks[0]?.fontSize)||17))+'px;text-align:'+(blocks[0]?.textAlign||"right")+'">'+blocks.map(block=>{
    const heading=block.title?'<h3 class="intro-block-title">'+escHtml(block.title)+'</h3>':"";
    if(block.type==="table"){const swotHeaders=block.headers||[];const swotKinds=swotHeaders.map((h,c)=>({header:String(h||""),col:c,kind:/القوة/.test(String(h||""))?"strength":/الضعف/.test(String(h||""))?"weakness":/الفرص/.test(String(h||""))?"opportunities":/التهديد/.test(String(h||""))?"threats":""})).filter(x=>x.kind);if(swotKinds.length===2){const swotNames={strength:"نقاط القوة",weakness:"نقاط الضعف",opportunities:"الفرص",threats:"التهديدات"};const swotHeadingFont=Math.max(10,Math.min(36,Number(block.swotHeaderFontSize)||26));const cards=swotKinds.map(item=>'<article class="intro-card swot-'+item.kind+'" style="--swot-heading-size:'+swotHeadingFont+'px"><h4>'+swotNames[item.kind]+'</h4><div class="swot-items">'+(block.rows||[]).map(row=>{const value=row[item.col];return value==null||String(value).trim()===""?"":'<p>'+escHtml(value)+'</p>'}).join("")+'</div></article>').join("");return '<div class="intro-block">'+heading+'<div class="intro-cards intro-swot">'+cards+'</div></div>'}const align=block.textAlign||"right",font=Math.max(10,Math.min(36,Number(block.fontSize)||17));return '<div class="intro-block">'+heading+'<table class="intro-table" style="font-size:'+font+'px;text-align:'+align+'"><thead><tr>'+(block.headers||[]).map(x=>'<th>'+escHtml(x)+'</th>').join("")+'</tr></thead><tbody>'+(block.rows||[]).map((row,r)=>'<tr>'+row.map((x,c)=>{const z=block.cellSizes&&block.cellSizes[r]&&block.cellSizes[r][c]||{};const st=(z.fontSize?'font-size:'+Number(z.fontSize)+'px;':'')+(z.textAlign?'text-align:'+z.textAlign+';':'');return '<td style="'+st+'">'+escHtml(x).replace(/\n/g,"<br>")+'</td>'}).join("")+'</tr>').join("")+'</tbody></table></div>'}
    if(block.type==="cards"){const isVisionValues=(block.cards||[]).length===3&&(block.cards||[]).every(card=>/الرؤية|الرسالة|القيم/.test(String(card.title||"")));const isSwot=(block.cards||[]).length===4&&(block.cards||[]).every(card=>/القوة|الضعف|الفرص|التهديدات/.test(String(card.title||"")));return '<div class="intro-block">'+heading+'<div class="intro-cards'+(isVisionValues?' intro-vision-values':'')+(isSwot?' intro-swot':'')+'">'+(block.cards||[]).map(card=>'<article class="intro-card"><h4>'+escHtml(card.title||"")+'</h4><p>'+escHtml(card.text||"").replace(/\n/g,"<br>")+'</p></article>').join("")+'</div></div>';}if(block.type==="radial"){const p=["top","topRight","right","bottomRight","bottom","bottomLeft","left","topLeft"];return '<div class="intro-block"><div class="intro-radial"><div class="intro-radial-center">'+escHtml(block.center||"مجالات الأداء المدرسي")+'</div>'+(block.nodes||[]).map((node,i)=>'<div class="intro-radial-node '+p[i]+'">'+escHtml(node)+'</div>').join("")+'</div></div>';}
    if(block.type==="paragraph")return '<div class="intro-block">'+heading+'<div class="intro-content">'+escHtml(block.text||"").replace(/\n/g,"<br>")+'</div></div>';
    if(block.type==="list")return '<div class="intro-block">'+heading+'<ol class="intro-list">'+(block.items||[]).map(x=>'<li>'+escHtml(x).replace(/\n/g,"<br>")+'</li>').join("")+'</ol></div>';
    return "";
-  }).join(""):'<div class="intro-content">'+escHtml(section.content||"").replace(/\n/g,"<br>")+'</div>';
+  }).join("")+'</div>':'<div class="intro-section-body" style="font-size:17px;text-align:right"><div class="intro-content">'+escHtml(section.content||"").replace(/\n/g,"<br>")+'</div></div>';
   return '<section class="plan-intro-print-page" data-section="'+escHtml(section.slug||"")+'"><div class="intro-kicker">الخطة التشغيلية</div><h2 class="intro-section-title">'+escHtml(section.title||"")+'</h2>'+body+'</section>';
  }).join("");
  if(!html)return "";
@@ -1912,15 +1912,19 @@ function renderPlanIntro(){
  host.innerHTML=planIntroSections.map((section,index)=>{
   const blocks=Array.isArray(section.blocks)?section.blocks:[];
   const structured=blocks.length>0;
-  const content=structured?'<div class="plan-intro-structured">'+blocks.map((x,i)=>renderPlanIntroBlock(x,i,canEdit)).join("")+'</div>':
-   (canEdit?'<label class="plan-intro-content-label">البيانات والمحتوى<textarea id="planContent-'+escHtml(section.slug)+'" rows="7" dir="rtl">'+escHtml(section.content||"")+'</textarea></label>':'<div class="plan-intro-content">'+(section.content?escHtml(section.content).replace(/\n/g,"<br>"):'<span class="plan-intro-empty">لا توجد بيانات مدخلة لهذا العنوان في الملف المرفق.</span>')+'</div>');
+  const baseFont=Math.max(10,Math.min(36,Number(blocks[0]?.fontSize)||17)),baseAlign=blocks[0]?.textAlign||"right";
+  const sectionTools=canEdit?'<div class="plan-table-tools plan-section-tools"><label>حجم خط القسم بالكامل <input class="plan-section-font" type="number" min="10" max="36" value="'+baseFont+'" onchange="previewPlanSectionStyle(this)"> px</label><label>محاذاة بيانات القسم <select class="plan-section-align" onchange="previewPlanSectionStyle(this)"><option value="right" '+(baseAlign==="right"?"selected":"")+'">يمين</option><option value="center" '+(baseAlign==="center"?"selected":"")+'">توسيط</option><option value="left" '+(baseAlign==="left"?"selected":"")+'">يسار</option></select></label><small>يُطبق على جميع محتويات القسم بما فيها الرؤية والرسالة والقيم، ثم اضغط حفظ القسم.</small></div>':"";
+  const contentStyle="font-size:"+baseFont+"px;text-align:"+baseAlign+";";
+  const content=structured?'<div class="plan-intro-structured" style="'+contentStyle+'">'+blocks.map((x,i)=>renderPlanIntroBlock(x,i,canEdit)).join("")+'</div>':
+   (canEdit?'<label class="plan-intro-content-label">البيانات والمحتوى<textarea id="planContent-'+escHtml(section.slug)+'" rows="7" dir="rtl">'+escHtml(section.content||"")+'</textarea></label>':'<div class="plan-intro-content" style="'+contentStyle+'">'+(section.content?escHtml(section.content).replace(/\n/g,"<br>"):'<span class="plan-intro-empty">لا توجد بيانات مدخلة لهذا العنوان في الملف المرفق.</span>')+'</div>');
   const addData=canEdit?'<button type="button" class="outline plan-add-data" onclick="addPlanIntroData(\''+escHtml(section.slug)+'\')">+ إضافة بيانات للقسم</button>':"";
   return '<article class="card plan-intro-card" data-section="'+escHtml(section.slug)+'"><div class="plan-intro-heading"><span class="plan-intro-index">'+(index+1)+'</span>'+
    (canEdit?'<label class="plan-intro-title-label">عنوان القسم<input id="planTitle-'+escHtml(section.slug)+'" value="'+escHtml(section.title||"")+'" aria-label="عنوان القسم"></label>':'<h3>'+escHtml(section.title||"")+'</h3>')+
-   '</div>'+content+addData+(canEdit?'<div class="plan-intro-actions"><button onclick="savePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حذف القسم</button><small id="planSaved-'+escHtml(section.slug)+'" aria-live="polite"></small></div>':'')+'</article>';
+   '</div>'+sectionTools+content+addData+(canEdit?'<div class="plan-intro-actions"><button onclick="savePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حذف القسم</button><small id="planSaved-'+escHtml(section.slug)+'" aria-live="polite"></small></div>':'')+'</article>';
  }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
  enablePlanIntroColumnResizing();
 }
+function previewPlanSectionStyle(control){const article=control.closest("[data-section]");if(!article)return;const font=Math.max(10,Math.min(36,Number(article.querySelector(".plan-section-font")?.value)||17)),align=article.querySelector(".plan-section-align")?.value||"right";const content=article.querySelector(".plan-intro-structured,.plan-intro-content");if(content){content.style.fontSize=font+"px";content.style.textAlign=align;content.querySelectorAll(".plan-intro-visual,.visual-copy,.plan-radial-node,.plan-radial-center,.plan-intro-list-item,.plan-intro-content,.plan-block-cell,.plan-card-copy").forEach(el=>{el.style.fontSize=font+"px";el.style.textAlign=align})}}
 function setPlanTableStyle(control){
  const table=control.closest(".plan-intro-block")?.querySelector(".plan-intro-table");if(!table)return;
  const align=control.closest(".plan-intro-block").querySelector(".plan-table-align")?.value||"right";
@@ -1966,7 +1970,9 @@ async function savePlanIntroSection(slug,button){
  const titleEl=document.getElementById("planTitle-"+slug),contentEl=document.getElementById("planContent-"+slug),msg=document.getElementById("planSaved-"+slug);
  const title=(titleEl?.value||"").trim(),content=contentEl?.value??section?.content??"";
  if(!title){if(msg)msg.textContent="يرجى كتابة عنوان القسم.";return}
- const blocks=article&&Array.isArray(section?.blocks)&&section.blocks.length?collectPlanIntroBlocks(article,section):section?.blocks||null;
+ let blocks=article&&Array.isArray(section?.blocks)&&section.blocks.length?collectPlanIntroBlocks(article,section):section?.blocks||null;
+ const sectionFont=Math.max(10,Math.min(36,Number(article?.querySelector(".plan-section-font")?.value)||17)),sectionAlign=article?.querySelector(".plan-section-align")?.value||"right";
+ if(!blocks||!blocks.length){blocks=[{type:"paragraph",text:content,fontSize:sectionFont,textAlign:sectionAlign}]}else{blocks=blocks.map(block=>({...block,fontSize:sectionFont,textAlign:sectionAlign}))}
  const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ الحفظ..."}
  try{
   const update={title,content,updated_at:new Date().toISOString()};if(blocks)update.blocks=blocks;
