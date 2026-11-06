@@ -1843,18 +1843,40 @@ function renderPlanIntroFormattedText(value,ranges){
 }
 function planIntroRichTools(){return '<div class="plan-rich-tools" hidden></div>'}
 let planIntroActiveField=null;
+function planRichOffsets(root,range){
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let start=0,end=0,pos=0,foundStart=false,foundEnd=false;
+ while(walker.nextNode()){const n=walker.currentNode,len=n.nodeValue.length;
+  if(!foundStart&&n===range.startContainer){start=pos+range.startOffset;foundStart=true}
+  if(!foundStart&&range.startContainer===root&&n===root.firstChild){start=0;foundStart=true}
+  if(!foundEnd&&n===range.endContainer){end=pos+range.endOffset;foundEnd=true}
+  pos+=len;
+ }
+ return {start,end};
+}
+function planRichText(el){return (el?.innerText??el?.textContent??"").replace(/\r/g,"")}
+function upgradePlanIntroRichEditors(){
+ const host=document.getElementById("planIntroSections");if(!host)return;
+ host.querySelectorAll(".plan-rich-text").forEach(old=>{
+  if(old.isContentEditable)return;
+  const el=document.createElement("div");
+  for(const attr of Array.from(old.attributes))el.setAttribute(attr.name,attr.value);
+  el.contentEditable="true";el.setAttribute("role","textbox");el.setAttribute("aria-multiline",old.tagName==="TEXTAREA"?"true":"false");
+  el.classList.add("plan-rich-editable");
+  el.innerText=old.value??old.textContent??"";
+  Object.defineProperty(el,"value",{configurable:true,get(){return planRichText(this)},set(v){this.innerText=v==null?"":String(v)}});
+  old.replaceWith(el);
+ });
+}
 function showPlanIntroFormatPopup(field){
  if(!field||!field.matches?.("#planIntroSections .plan-rich-text"))return;
- const start=field.selectionStart,end=field.selectionEnd;if(start===end)return;
- planIntroActiveField=field;field.dataset.pendingStart=start;field.dataset.pendingEnd=end;
+ const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed||!field.contains(sel.anchorNode)||!field.contains(sel.focusNode))return;
+ const range=sel.getRangeAt(0).cloneRange(),offsets=planRichOffsets(field,range);if(offsets.end<=offsets.start)return;
+ planIntroActiveField=field;field.dataset.pendingStart=offsets.start;field.dataset.pendingEnd=offsets.end;
  let popup=document.getElementById("plan-intro-format-popup");
- if(!popup){popup=document.createElement("div");popup.id="plan-intro-format-popup";popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label>';document.body.appendChild(popup);popup.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",()=>applyPlanIntroFormatChoice(sel)));}
- const rect=field.getBoundingClientRect(),style=getComputedStyle(field),lineHeight=parseFloat(style.lineHeight)||30;
- const before=field.value.slice(0,start),line=(before.match(/\n/g)||[]).length,lastLine=before.slice(before.lastIndexOf("\n")+1);
- const approxChar=Math.max(7,parseFloat(style.fontSize)*.55),left=Math.max(8,Math.min(window.innerWidth-300,rect.left+Math.min(Math.max(0,rect.width-260),lastLine.length*approxChar)));
- const top=Math.max(8,Math.min(window.innerHeight-90,rect.top+Math.min(Math.max(0,rect.height-35),line*lineHeight-field.scrollTop+lineHeight)));
- popup.style.cssText='position:fixed;z-index:999999;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;left:'+left+'px;top:'+top+'px';
- popup.querySelectorAll("select").forEach(x=>x.value="");popup.style.display="flex";
+ if(!popup){popup=document.createElement("div");popup.id="plan-intro-format-popup";popup.innerHTML='<label>الحجم <select data-act="size"><option value="">الحجم الافتراضي</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option><option>32</option><option>36</option></select></label><label>المحاذاة <select data-act="align"><option value="">افتراضي</option><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option><option value="justify">ضبط</option></select></label><label>اللون <select data-act="color"><option value="">افتراضي</option><option value="#172033">أسود</option><option value="#1d4ed8">أزرق</option><option value="#15803d">أخضر</option><option value="#b91c1c">أحمر</option><option value="#9333ea">بنفسجي</option><option value="#d97706">برتقالي</option></select></label>';document.body.appendChild(popup);popup.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",()=>applyPlanIntroFormatChoice(sel)));}
+ const rect=range.getBoundingClientRect(),left=Math.max(8,Math.min(window.innerWidth-300,rect.left)),top=Math.max(8,Math.min(window.innerHeight-100,rect.bottom+8));
+ popup.querySelectorAll("select").forEach(x=>x.value="");popup.style.cssText='position:fixed;z-index:999999;display:flex;gap:7px;flex-wrap:wrap;align-items:center;max-width:min(96vw,520px);padding:9px;background:#fff;border:1px solid #8aa9ce;border-radius:10px;box-shadow:0 5px 22px #0f274455;font:12px Tahoma;direction:rtl;left:'+left+'px;top:'+top+'px';
+ field.dataset.pendingHtml=range.toString();
 }
 function applyPlanIntroFormatChoice(control){
  const field=planIntroActiveField;if(!field)return;
@@ -1870,23 +1892,24 @@ function applyPlanIntroFormatChoice(control){
  });
  if(value){const entry={start,end};if(action==="size")entry.size=Number(value);if(action==="color")entry.color=value;if(action==="align")entry.align=value;next.push(entry);}
  next.sort((x,y)=>x.start-y.start);field.dataset.fontRanges=JSON.stringify(next);
+ const fullText=planRichText(field),walker=document.createTreeWalker(field,NodeFilter.SHOW_TEXT);let pos=0,first=null,last=null;
+ while(walker.nextNode()){const n=walker.currentNode,len=n.nodeValue.length;if(!first&&start>=pos&&start<=pos+len)first={node:n,offset:start-pos};if(end>=pos&&end<=pos+len){last={node:n,offset:end-pos};break}pos+=len;}
+ if(first&&last){try{const range=document.createRange();range.setStart(first.node,first.offset);range.setEnd(last.node,last.offset);const span=document.createElement("span");if(action==="size")span.style.fontSize=value+"px";if(action==="color")span.style.color=value;if(action==="align")field.style.textAlign=value||"";span.appendChild(range.extractContents());range.insertNode(span);const sel=window.getSelection();sel.removeAllRanges();const after=document.createRange();after.selectNodeContents(span);sel.addRange(after)}catch(e){}}
  const popup=document.getElementById("plan-intro-format-popup");if(popup)popup.style.display="none";
- const status=field.closest(".plan-rich-editor")?.querySelector(".plan-rich-status");if(status)status.textContent="تم تطبيق التنسيق على الجزء المحدد؛ احفظ القسم لتثبيته.";
  field.focus({preventScroll:true});
 }
 function installPlanIntroSelectionWatcher(){
  if(window.__planIntroSelectionWatcher)return;window.__planIntroSelectionWatcher=true;
- let lastField=null;
- const detect=()=>{const active=document.activeElement;if(active?.matches?.("#planIntroSections .plan-rich-text")){lastField=active;if(active.selectionEnd>active.selectionStart)showPlanIntroFormatPopup(active);}};
+ const detect=()=>{const active=document.activeElement;if(active?.matches?.("#planIntroSections .plan-rich-text"))showPlanIntroFormatPopup(active)};
  document.addEventListener("selectionchange",()=>setTimeout(detect,40),{passive:true});
  document.addEventListener("pointerup",()=>setTimeout(detect,40),{passive:true});
  document.addEventListener("touchend",()=>setTimeout(detect,80),{passive:true});
- document.addEventListener("keyup",e=>{if(e.target?.matches?.("#planIntroSections .plan-rich-text"))setTimeout(detect,30);});
- document.addEventListener("scroll",()=>{const p=document.getElementById("plan-intro-format-popup");if(p)p.style.display="none";},true);
+ document.addEventListener("keyup",e=>{if(e.target?.matches?.("#planIntroSections .plan-rich-text"))setTimeout(detect,30)});
+ document.addEventListener("scroll",()=>{const p=document.getElementById("plan-intro-format-popup");if(p)p.style.display="none"},true);
 }
 function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
  const esc=(v)=>escHtml(v==null?"":String(v));
- const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<input class="plan-block-title plan-rich-text" data-block="'+index+'" data-font-ranges="'+esc(JSON.stringify(block.titleFontRanges||[]))+'" value="'+esc(block.title)+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">':esc(block.title))+'</div>':"";
+ const title=block.title?'<div class="plan-intro-block-title">'+(canEdit?'<div contenteditable="true" class="plan-block-title plan-rich-text" data-block="'+index+'" data-font-ranges="'+esc(JSON.stringify(block.titleFontRanges||[]))+'" style="font:800 21px Tahoma;width:100%;text-align:center;padding:10px;border:1px solid #cbd5e1;border-radius:8px">'+esc(block.title)+'</div>':renderPlanIntroFormattedText(block.title,block.titleFontRanges))+'</div>':"";
  if(block.type==="table"){
   const swotHeaders=block.headers||[];
   const swotKinds=swotHeaders.map((h,c)=>({header:String(h||""),col:c,kind:/القوة/.test(String(h||""))?"strength":/الضعف/.test(String(h||""))?"weakness":/الفرص/.test(String(h||""))?"opportunities":/التهديد/.test(String(h||""))?"threats":""})).filter(x=>x.kind);
@@ -1979,6 +2002,7 @@ function renderPlanIntro(){
    '</div>'+sectionTools+content+addData+(canEdit?'<div class="plan-intro-actions"><button onclick="savePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حفظ القسم</button><button class="plan-intro-delete" onclick="deletePlanIntroSection(\''+escHtml(section.slug)+'\',this)">حذف القسم</button><small id="planSaved-'+escHtml(section.slug)+'" aria-live="polite"></small></div>':'')+'</article>';
  }).join("")||'<div class="card">لا توجد أقسام لعرضها.</div>';
  enablePlanIntroColumnResizing();
+ upgradePlanIntroRichEditors();installPlanIntroSelectionWatcher();
 }
 function previewPlanSectionStyle(control){const article=control.closest("[data-section]");if(!article)return;const font=Math.max(10,Math.min(36,Number(article.querySelector(".plan-section-font")?.value)||17)),align=article.querySelector(".plan-section-align")?.value||"right";const content=article.querySelector(".plan-intro-structured,.plan-intro-content");if(content){content.style.fontSize=font+"px";content.style.textAlign=align;content.querySelectorAll(".plan-intro-visual,.visual-copy,.plan-radial-node,.plan-radial-center,.plan-intro-list-item,.plan-intro-content,.plan-block-cell,.plan-card-copy").forEach(el=>{el.style.fontSize=font+"px";el.style.textAlign=align})}}
 function setPlanTableStyle(control){
