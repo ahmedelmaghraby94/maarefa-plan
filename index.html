@@ -1830,6 +1830,7 @@ async function loadPlanIntroSections(){
  const {data,error}=await sb.from("plan_intro_sections").select("*").order("sort_order",{ascending:true});
  if(error)throw new Error("تعذر تحميل مقدمة وأهداف الخطة: "+error.message);
  planIntroSections=data||[];
+ planIntroSections.forEach(section=>{if(Array.isArray(section.blocks)&&section.blocks[0]?.sectionTitleFontRanges)section.titleFontRanges=section.blocks[0].sectionTitleFontRanges});
  renderPlanIntro();
 }
 
@@ -1843,7 +1844,7 @@ function renderPlanIntroFormattedText(value,ranges){
 function planIntroRichTools(){return '<div class="plan-rich-tools" hidden></div>'}
 let planIntroActiveField=null;
 function showPlanIntroFormatPopup(field){
- if(!field||!field.classList.contains("plan-rich-text"))return;
+ if(!field||!field.matches?.("#planIntroSections .plan-rich-text"))return;
  const start=field.selectionStart,end=field.selectionEnd;if(start===end)return;
  planIntroActiveField=field;field.dataset.pendingStart=start;field.dataset.pendingEnd=end;
  let popup=document.getElementById("plan-intro-format-popup");
@@ -2030,7 +2031,7 @@ async function savePlanIntroSection(slug,button){
  if(!blocks||!blocks.length){blocks=[{type:"paragraph",text:content,fontSize:sectionFont,textAlign:sectionAlign}]}else{blocks=blocks.map(block=>({...block,fontSize:sectionFont,textAlign:sectionAlign}))}
  const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ الحفظ..."}
  try{
-  const update={title,content,title_font_ranges:section?.titleFontRanges||[],updated_at:new Date().toISOString()};if(blocks)update.blocks=blocks;
+  if(!blocks||!blocks.length)blocks=[{type:"paragraph",text:content}];if(blocks[0])blocks[0].sectionTitleFontRanges=section?.titleFontRanges||[];const update={title,content,updated_at:new Date().toISOString()};update.blocks=blocks;
   const {error}=await sb.from("plan_intro_sections").update(update).eq("slug",slug);if(error)throw error;
   if(section){section.title=title;section.content=content;if(blocks)section.blocks=blocks;section.updated_at=new Date().toISOString()}
   if(msg)msg.textContent="تم حفظ التعديلات بنجاح.";
