@@ -2071,7 +2071,7 @@ function addPlanIntroData(slug){
  const article=Array.from(document.querySelectorAll("[data-section]")).find(x=>x.dataset.section===slug);
  if(Array.isArray(section.blocks)&&section.blocks.length){const blocks=collectPlanIntroBlocks(article,section);blocks.push({type:"paragraph",title:"بيانات إضافية",text:""});section.blocks=blocks;}
  else{const current=document.getElementById("planContent-"+slug)?.value??section.content??"";section.content=current+(current?"\n\n":"")+"بيانات إضافية:\n";section.blocks=null;}
- renderPlanIntro();
+ renderPlanIntro();schedulePlanIntroAutoSave(document.querySelector('[data-section="'+slug+'"]'),500);
 }
 async function deletePlanIntroSection(slug,button){
  if(String(me?.role||"").trim().toLowerCase()!=="coordinator"){alert("حذف الأقسام متاح لمنسق الخطة فقط.");return}
