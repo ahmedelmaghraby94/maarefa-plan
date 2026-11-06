@@ -1936,7 +1936,7 @@ function installPlanIntroSelectionWatcher(){
  document.addEventListener("pointerup",()=>setTimeout(detect,40),{passive:true});
  document.addEventListener("touchend",()=>setTimeout(detect,80),{passive:true});
  document.addEventListener("keyup",e=>{if(e.target?.matches?.("#planIntroSections .plan-rich-text"))setTimeout(detect,30)});
- document.addEventListener("scroll",()=>{const p=document.getElementById("plan-intro-format-popup");if(p)p.style.display="none"},true);
+ // لا تُخفِ شريط التنسيق عند التمرير؛ قد يسبب فتح قائمة حجم الخط تمريرًا تلقائيًا على الهاتف.
 }
 function renderPlanIntroBlock(block,index,canEdit,sectionTitle=""){
  const esc=(v)=>escHtml(v==null?"":String(v));
