@@ -1857,7 +1857,7 @@ function planRichText(el){return (el?.innerText??el?.textContent??"").replace(/\
 function upgradePlanIntroRichEditors(){
  const host=document.getElementById("planIntroSections");if(!host)return;
  host.querySelectorAll(".plan-rich-text").forEach(old=>{
-  if(old.isContentEditable)return;
+  if(old.isContentEditable){if(!Object.getOwnPropertyDescriptor(old,"value"))Object.defineProperty(old,"value",{configurable:true,get(){return planRichText(this)},set(v){this.innerText=v==null?"":String(v)}});return}
   const el=document.createElement("div");
   for(const attr of Array.from(old.attributes))el.setAttribute(attr.name,attr.value);
   el.contentEditable="true";el.setAttribute("role","textbox");el.setAttribute("aria-multiline",old.tagName==="TEXTAREA"?"true":"false");
